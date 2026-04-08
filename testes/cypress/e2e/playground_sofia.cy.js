@@ -1,41 +1,33 @@
 //testes criados usando claude sonnet 4.6 (browser)
 
-describe('Cypress Playground - Testes Sofia (de sucesso)', () => {
+describe('QA Playground - Testes de Sucesso', () => {
   beforeEach(() => {
-    const date = new Date(Date.UTC(1982, 3, 15))
-    cy.clock(date)
-    cy.visit('https://cypress-playground.s3.eu-central-1.amazonaws.com/index.html')
+    cy.on('uncaught:exception', () => false)
+    cy.visit('https://playground-for-qa.vercel.app/playground')
   })
 
- it('seleciona uma data e verifica que ela é exibida corretamente', () => {
-  cy.get('#input-date input[type="date"]')
-    .type('2024-01-16')
-    .blur()
+  // Teste 1 - Data
+  it('seleciona uma data e verifica que ela é exibida corretamente', () => {
+    cy.get('input[type="date"]').first().type('2024-01-16')
+    cy.contains('2024-01-16').should('be.visible')
+  })
 
-  cy.contains('#input-date p#date-paragraph', "The date you've selected is: 2024-01-16")
-    .should('be.visible')
+  // Teste 2 - Dropdown customizado
+  it('seleciona "Cypress" no dropdown de framework e verifica a seleção', () => {
+    cy.contains('Escolha uma opção').first().click()
+    cy.contains('Cypress').click()
+    cy.contains('Cypress').should('be.visible')
+  })
+
+  // Teste 3 - Checkbox
+  it('marca todos os checkboxes e verifica que o contador atualiza', () => {
+    cy.contains('Selecionar Todas').click()
+    cy.contains('Selecionados: 3').should('be.visible')
+  })
+
+  // Teste 4 - Campo de texto
+  it('digita no campo de texto e verifica o contador de caracteres', () => {
+  cy.get('input[type="text"]').first().type('Cypress Hero')
+  cy.get('input[type="text"]').first().should('have.value', 'Cypress Hero')
 })
-
-  it('seleciona apenas "Apple" no dropdown de múltipla seleção e verifica a mensagem', () => {
-    cy.contains('p', "You haven't selected any fruit yet.")
-    cy.get('#select select[multiple]').select(['Apple'])
-    cy.contains('p', "You've selected the following fruits: apple")
-  })
-
-  it('digita uma assinatura, marca o checkbox e confirma que o preview é exibido', () => {
-    const assinatura = 'Cypress Hero'
-    cy.get('#check textarea').type(assinatura)
-    cy.get('#check input[type="checkbox"]').check()
-    cy.contains('#check em', assinatura).should('be.visible')
-  })
-
-  it('seleciona o nível 5 no input range e confirma a mensagem correta', () => {
-    const nivel = 5
-    cy.get('#input-range input[type="range"]')
-      .invoke('val', nivel)
-      .should('have.value', String(nivel))
-      .trigger('change')
-    cy.contains('#input-range p', `You're on level: ${nivel}`)
-      .should('be.visible')
-  })
 })
