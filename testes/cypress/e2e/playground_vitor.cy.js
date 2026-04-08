@@ -1,3 +1,4 @@
+//Testes criados usando chatGPT 5.3 (browser) menos os de texto, esses eu fiz mesmo
 
 Cypress.on('uncaught:exception', (err, runnable) => {
   return false
@@ -72,6 +73,7 @@ describe('Teste de duplo clique com validação', () => {
 
 })
 
+//Eu que fiz
 describe('Teste do input de texto', () => {
 
   it('Deve permitir digitação', () => {
@@ -89,6 +91,7 @@ describe('Teste do input de texto', () => {
 
 })
 
+//Eu que fiz
 describe('Teste de digitação e output', () => {
 
   it('Deve refletir o texto digitado', () => {

@@ -92,3 +92,5 @@ testes/
 
 - A pasta `node_modules/` nao deve ser versionada.
 - Se forem gerados artefatos pelo Cypress, mantenha o `.gitignore` atualizado para ignorar videos e screenshots.
+
+Versão inicial de README.md criado por GPT-5.3-Codex
