@@ -1,4 +1,4 @@
-//Testes criados usando chatGPT 5.3 (browser) menos os de texto, esses eu fiz mesmo
+//Testes criados usando chatGPT 5.3 (browser) menos o de texto, esse eu fiz mesmo
 
 Cypress.on('uncaught:exception', (err, runnable) => {
   return false
@@ -73,23 +73,6 @@ describe('Teste de duplo clique com validação', () => {
 
 })
 
-//Eu que fiz
-describe('Teste do input de texto', () => {
-
-  it('Deve permitir digitação', () => {
-
-    Cypress.on('uncaught:exception', () => false)
-
-    cy.visit('https://playground-for-qa.vercel.app/playground')
-
-    cy.get('[data-testid="text-input"]')
-      .should('be.visible')
-      .type('Teste Cypress')
-      .should('have.value', 'Teste Cypress')
-
-  })
-
-})
 
 //Eu que fiz
 describe('Teste de digitação e output', () => {
@@ -109,6 +92,7 @@ describe('Teste de digitação e output', () => {
   })
 
 })
+
 it('Deve exibir placeholder correto', () => {
 
   cy.visit('https://playground-for-qa.vercel.app/playground')
