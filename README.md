@@ -82,6 +82,11 @@ testes/
   package.json
 ```
 
+## Plano de Testes
+
+- Plano em PDF: `docs/plano_de_testes_cypress.pdf`
+- Documento elaborado por GPT-5.3-Codex.
+
 ## Responsaveis por teste
 
 | Arquivo de teste | Responsavel |
@@ -89,6 +94,7 @@ testes/
 | `testes/cypress/e2e/playground_vitor.cy.js` | Vitor |
 | `testes/cypress/e2e/playground_eduardo.cy.js` | Eduardo |
 | `testes/cypress/e2e/playground_sofia.cy.js` | Sofia |
+| `testes/cypress/e2e/playground_felipe.cy.js` | Felipe |
 
 ## Observacoes
 
