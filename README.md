@@ -87,6 +87,7 @@ testes/
 | Arquivo de teste | Responsavel |
 | --- | --- |
 | `testes/cypress/e2e/playground_vitor.cy.js` | Vitor |
+| `testes/cypress/e2e/playground_eduardo.cy.js` | Eduardo |
 
 ## Observacoes
 
