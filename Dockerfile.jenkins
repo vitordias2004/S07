@@ -1,0 +1,15 @@
+FROM jenkins/jenkins:lts
+
+USER root
+
+# Instalar Node.js 18 e dependências necessárias para o pipeline
+RUN apt-get update && apt-get install -y \
+    curl \
+    && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+# Instalar Docker CLI para que o Jenkins possa interagir com o Docker do host
+RUN curl -fsSL https://get.docker.com | sh
+
+USER jenkins

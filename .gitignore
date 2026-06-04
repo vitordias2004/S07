@@ -1,4 +1,32 @@
+# Node modules
 node_modules/
-testesc/ypress/videos/
+
+# Build artifacts
+build/
+*.tar.gz
+
+# Test results
+test-results/
+
+# Cypress artifacts
+testes/cypress/videos/
 testes/cypress/screenshots/
-docs/
+
+# Docker volumes (não commitar dados persistentes)
+jenkins-home/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment variables (NÃO commitar credenciais!)
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
