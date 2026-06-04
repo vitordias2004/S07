@@ -1,0 +1,12 @@
+{
+  "name": "devops-s07-email",
+  "version": "1.0.0",
+  "description": "Script de notificação por e-mail para pipeline Jenkins",
+  "main": "script-email.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "nodemailer": "^6.9.0"
+  }
+}

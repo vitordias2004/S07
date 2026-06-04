@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+
+  # Container 1: Jenkins — build local com Node.js + Docker CLI
+  jenkins:
+    build:
+      context: .
+      dockerfile: Dockerfile.jenkins
+    container_name: jenkins-s07
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins-home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
+    networks:
+      - devops-network
+    restart: unless-stopped
+
+  # Container 2: Cypress — build local (Dockerfile raiz)
+  cypress:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cypress-s07
+    depends_on:
+      - nginx
+      - node-app
+    environment:
+      - CYPRESS_baseUrl=http://nginx:80
+    networks:
+      - devops-network
+    volumes:
+      - cypress-videos:/app/cypress/videos
+      - cypress-screenshots:/app/cypress/screenshots
+
+  # Container 3: Nginx — imagem do Docker Hub
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-s07
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/html:/usr/share/nginx/html:ro
+    networks:
+      - devops-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Container 4: Node App — build local (app/Dockerfile)
+  node-app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: node-app-s07
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - devops-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', r => process.exit(r.statusCode === 200 ? 0 : 1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+networks:
+  devops-network:
+    driver: bridge
+
+volumes:
+  jenkins-home:
+  cypress-videos:
+  cypress-screenshots:
