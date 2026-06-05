@@ -1,9 +1,7 @@
 FROM node:18-slim
-
 LABEL maintainer="Grupo S07 - DevOps"
 LABEL description="Imagem customizada para testes Cypress"
 
-# Instalar dependências do sistema para Cypress
 RUN apt-get update && apt-get install -y \
     libgtk2.0-0 \
     libgtk-3-0 \
@@ -21,13 +19,9 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Copiar package.json primeiro (aproveita cache de layer)
 COPY testes/package.json ./
-
 RUN npm install
 
 COPY testes/ ./
-
-EXPOSE 3000
 
 CMD ["npx", "cypress", "run"]
