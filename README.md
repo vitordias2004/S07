@@ -71,6 +71,7 @@ Acesse **Jenkins → Manage Jenkins → Credentials** e crie:
 | `docker-hub-credentials` | Username with password | Token de acesso do Docker Hub (username: seu-usuario, password: token de acesso) |
 
 > Para criar uma senha de app no Gmail: Conta Google → Segurança → Verificação em duas etapas → Senhas de app
+> Para gerar um token de acesso no Docker Hub: Docker Hub → Account Settings → Personal access tokens → Generate new token (com permissões Read e Write). Use esse token como senha no Jenkins.
 
 ### Criar o pipeline
 
