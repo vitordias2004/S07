@@ -68,6 +68,7 @@ Acesse **Jenkins → Manage Jenkins → Credentials** e crie:
 | `email-remetente` | Secret text | E-mail que vai enviar as notificações |
 | `email-destino` | Secret text | E-mail que vai receber as notificações |
 | `email-senha` | Secret text | Senha de app do Gmail (não a senha da conta) |
+| `docker-hub-credentials` | Username with password | Token de acesso do Docker Hub (username: seu-usuario, password: token de acesso) |
 
 > Para criar uma senha de app no Gmail: Conta Google → Segurança → Verificação em duas etapas → Senhas de app
 
@@ -108,7 +109,9 @@ O `Jenkinsfile` contém **3 stages obrigatórios**:
 
 1. **Testes** — Executa Cypress headless, gera relatório JUnit e publica no Jenkins
 2. **Build** — Empacota o projeto em `.tar.gz` e arquiva como artefato
-3. **Notificação** — Envia e-mail HTML com status, número do build e timestamp
+3. **Build Docker Image** — Gera a imagem do docker com base no Dockerfile
+4. **Push to Docker Hub** — Sobe a imagem gerada ao Docker Hub
+5. **Notificação** — Envia e-mail HTML com status, número do build e timestamp
 
 Artefatos gerados e arquivados:
 - `build/app-build-<timestamp>.tar.gz`
