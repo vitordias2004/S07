@@ -7,6 +7,13 @@ pipeline {
         EMAIL_DESTINO   = credentials('email-destino')
         EMAIL_SENHA     = credentials('email-senha')
 
+        // Credenciais do docker hub
+        DOCKER_HUB_CREDS = credentials('docker-hub-credentials')
+        
+        // Configuracoes do docker hub
+        DOCKER_IMAGE = "${DOCKER_HUB_CREDS_USR}/s07-devops"
+        DOCKER_TAG = "${BUILD_NUMBER}"
+
         // Configurações do pipeline
         CYPRESS_BASE_URL = 'http://nginx:80'
         REPORT_DIR       = 'test-results'
@@ -53,6 +60,36 @@ pipeline {
                             testes/ \
                             Dockerfile \
                             docker-compose.yml
+                    """
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    echo 'Building Docker image...'
+                    sh """
+                        docker build -f Dockerfile -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
+                        docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest
+                    """
+                }
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            when {
+                branch 'main'
+            }
+            steps {
+                script {
+                    echo 'Pushing image to Docker Hub...'
+
+                    sh """
+                        echo "${DOCKER_HUB_CREDS_PSW}" | docker login -u "${DOCKER_HUB_CREDS_USR}" --password-stdin
+                        docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
+                        docker push ${DOCKER_IMAGE}:latest
+                        docker logout
                     """
                 }
             }
