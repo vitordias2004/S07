@@ -51,7 +51,7 @@ pipeline {
                             -v \$PWD/${REPORT_DIR}:/app/${REPORT_DIR} \
                             -e CYPRESS_BASE_URL=${CYPRESS_BASE_URL} \
                             ${DOCKER_IMAGE}:${DOCKER_TAG} \
-                            npx cypress run --browser chrome --reporter junit --reporter-options "mochaFile=/app/${REPORT_DIR}/cypress-results.xml"
+                            npx cypress run --browser electron --reporter junit --reporter-options "mochaFile=/app/${REPORT_DIR}/cypress-results.xml"
                     """
                 }
             }
