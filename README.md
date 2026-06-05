@@ -101,7 +101,7 @@ S07/
 │       └── index.html      # Página estática servida pelo Nginx
 └── testes/
     └── cypress/
-        └── e2e/            # Testes automatizados Cypress
+        └── e2e/            # Testes Cypress organizados por funcionalidade
 ```
 
 ## 🔄 Pipeline Jenkins
@@ -145,6 +145,7 @@ docker push SEU_USER/s07-devops:latest
 ## 🧪 Testes
 
 Os testes E2E com Cypress ficam em `testes/cypress/e2e/`.
+Os arquivos de spec sao organizados por funcionalidade, e cada caso traz um comentario curto indicando a autoria original do teste.
 
 ```bash
 # Rodar localmente
