@@ -71,6 +71,7 @@ Acesse **Jenkins → Manage Jenkins → Credentials** e crie:
 | `docker-hub-credentials` | Username with password | Token de acesso do Docker Hub (username: seu-usuario, password: token de acesso) |
 
 > Para criar uma senha de app no Gmail: Conta Google → Segurança → Verificação em duas etapas → Senhas de app
+> Para gerar um token de acesso no Docker Hub: Docker Hub → Account Settings → Personal access tokens → Generate new token (com permissões Read e Write). Use esse token como senha no Jenkins.
 
 ### Criar o pipeline
 
@@ -105,11 +106,11 @@ S07/
 
 ## 🔄 Pipeline Jenkins
 
-O `Jenkinsfile` contém **3 stages obrigatórios**:
+O `Jenkinsfile` contém **5 stages obrigatórios**:
 
-1. **Testes** — Executa Cypress headless, gera relatório JUnit e publica no Jenkins
-2. **Build** — Empacota o projeto em `.tar.gz` e arquiva como artefato
-3. **Build Docker Image** — Gera a imagem do docker com base no Dockerfile
+1. **Build Docker Image** — Gera a imagem do docker com base no Dockerfile
+2. **Testes** — Executa Cypress headless, gera relatório JUnit e publica no Jenkins
+3. **Build** — Empacota o projeto em `.tar.gz` e arquiva como artefato
 4. **Push to Docker Hub** — Sobe a imagem gerada ao Docker Hub
 5. **Notificação** — Envia e-mail HTML com status, número do build e timestamp
 

@@ -28,18 +28,30 @@ pipeline {
             }
         }
 
+        stage('Build Docker Image') {  
+            steps {
+                script {
+                    echo 'Building Docker image...'
+                    sh """
+                        docker build -f Dockerfile -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
+                        docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest
+                    """
+                }
+            }
+        }
+
         stage('Testes') {
             steps {
                 script {
-                    echo 'Executando testes Cypress...'
+                    echo 'Executando testes Cypress dentro da imagem Docker...'
                     sh "mkdir -p ${REPORT_DIR}"
                     sh """
-                        cd testes
-                        npm install
-                        npx cypress run \
-                            --browser chrome \
-                            --reporter junit \
-                            --reporter-options "mochaFile=../${REPORT_DIR}/cypress-results.xml"
+                        docker run --rm \
+                            -v \$PWD/testes:/app/testes \
+                            -v \$PWD/${REPORT_DIR}:/app/${REPORT_DIR} \
+                            -e CYPRESS_BASE_URL=${CYPRESS_BASE_URL} \
+                            ${DOCKER_IMAGE}:${DOCKER_TAG} \
+                            npx cypress run --browser electron --reporter junit --reporter-options "mochaFile=/app/${REPORT_DIR}/cypress-results.xml"
                     """
                 }
             }
@@ -60,18 +72,6 @@ pipeline {
                             testes/ \
                             Dockerfile \
                             docker-compose.yml
-                    """
-                }
-            }
-        }
-
-        stage('Build Docker Image') {
-            steps {
-                script {
-                    echo 'Building Docker image...'
-                    sh """
-                        docker build -f Dockerfile -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
-                        docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest
                     """
                 }
             }
