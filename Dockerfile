@@ -1,4 +1,4 @@
-FROM node:18-slim
+FROM node:20-slim
 LABEL maintainer="Grupo S07 - DevOps"
 LABEL description="Imagem customizada para testes Cypress"
 
@@ -19,9 +19,9 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-COPY testes/package.json ./
-RUN npm install
+COPY testes/package.json testes/package-lock.json ./
+RUN npm ci
 
 COPY testes/ ./
 
-CMD ["npx", "cypress", "run"]
+CMD ["npx", "cypress", "run", "--spec", "cypress/e2e/**/*.cy.js"]

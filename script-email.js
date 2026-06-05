@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Script de notificação por e-mail para pipeline Jenkins
+ * Script de notificacao por e-mail para pipeline Jenkins.
  *
  * Uso:
  *   node script-email.js \
@@ -9,26 +9,39 @@
  *     --to "destino@exemplo.com" \
  *     --password "senha-de-app" \
  *     --status "SUCCESS" \
- *     --build "123"
+ *     --build "123" \
+ *     --build-url "http://localhost:8080/job/S07/123/" \
+ *     --history-file "./nginx/html/data/email-history.json"
  *
- * Variáveis de ambiente alternativas:
- *   EMAIL_REMETENTE, EMAIL_DESTINO, EMAIL_SENHA, BUILD_STATUS, BUILD_NUMBER
+ * Variaveis de ambiente alternativas:
+ *   EMAIL_REMETENTE, EMAIL_DESTINO, EMAIL_SENHA, BUILD_STATUS,
+ *   BUILD_NUMBER, BUILD_URL, EMAIL_HISTORY_FILE
  */
 
+const fs = require('fs');
+const path = require('path');
 const nodemailer = require('nodemailer');
 
-// Parse de argumentos da linha de comando
+const MAX_HISTORY_ITEMS = 50;
+
 function parseArgs() {
     const args = process.argv.slice(2);
     const parsed = {};
+
     for (let i = 0; i < args.length; i += 2) {
-        const key = args[i].replace('--', '');
-        parsed[key] = args[i + 1];
+        const key = args[i];
+        const value = args[i + 1];
+
+        if (!key || !key.startsWith('--') || value === undefined) {
+            continue;
+        }
+
+        parsed[key.replace('--', '')] = value;
     }
+
     return parsed;
 }
 
-// Configurar transporte SMTP — remetente vem de variável, nunca hardcoded
 function createTransporter(from, password) {
     return nodemailer.createTransport({
         service: 'gmail',
@@ -39,11 +52,18 @@ function createTransporter(from, password) {
     });
 }
 
-// Gerar conteúdo do e-mail
+function formatTimestamp(date) {
+    return new Intl.DateTimeFormat('pt-BR', {
+        dateStyle: 'short',
+        timeStyle: 'medium',
+        timeZone: 'America/Sao_Paulo'
+    }).format(date);
+}
+
 function generateEmailContent(status, buildNumber) {
-    const statusEmoji = status === 'SUCCESS' ? '✅' : '❌';
-    const statusColor = status === 'SUCCESS' ? '#2e7d32' : '#c62828';
-    const timestamp = new Date().toLocaleString('pt-BR');
+    const statusLabel = status === 'SUCCESS' ? 'Sucesso' : 'Falha';
+    const statusColor = status === 'SUCCESS' ? '#1f7a3d' : '#ad2e24';
+    const timestamp = formatTimestamp(new Date());
 
     return {
         subject: `[DevOps S07] Pipeline #${buildNumber} - ${status}`,
@@ -62,15 +82,15 @@ function generateEmailContent(status, buildNumber) {
             </head>
             <body>
                 <div class="header">
-                    <h1>${statusEmoji} Pipeline CI/CD — S07</h1>
+                    <h1>Pipeline CI/CD - S07</h1>
                 </div>
                 <div class="content">
-                    <p class="status">Status: ${status}</p>
+                    <p class="status">Status: ${statusLabel} (${status})</p>
                     <div class="details">
                         <p><strong>Build #:</strong> ${buildNumber}</p>
                         <p><strong>Data:</strong> ${timestamp}</p>
                         <p><strong>Projeto:</strong> S07 - DevOps NP2</p>
-                        <p><strong>Repositório:</strong> <a href="https://github.com/vitordias2004/S07">github.com/vitordias2004/S07</a></p>
+                        <p><strong>Repositorio:</strong> <a href="https://github.com/vitordias2004/S07">github.com/vitordias2004/S07</a></p>
                     </div>
                 </div>
                 <div class="footer">
@@ -82,48 +102,152 @@ function generateEmailContent(status, buildNumber) {
     };
 }
 
-// Enviar e-mail
+function maskEmail(address) {
+    if (!address || !address.includes('@')) {
+        return address || '';
+    }
+
+    const [localPart, domainPart] = address.split('@');
+    const domainPieces = domainPart.split('.');
+    const domainName = domainPieces.shift() || '';
+    const tld = domainPieces.join('.');
+
+    const visibleLocal = localPart.slice(0, Math.min(2, localPart.length));
+    const visibleDomain = domainName.slice(0, Math.min(2, domainName.length));
+    const maskedLocal = `${visibleLocal}${'*'.repeat(Math.max(1, localPart.length - visibleLocal.length))}`;
+    const maskedDomain = `${visibleDomain}${'*'.repeat(Math.max(1, domainName.length - visibleDomain.length))}`;
+
+    return `${maskedLocal}@${maskedDomain}${tld ? `.${tld}` : ''}`;
+}
+
+function loadHistory(historyFile) {
+    if (!historyFile || !fs.existsSync(historyFile)) {
+        return { updatedAt: null, emails: [] };
+    }
+
+    try {
+        const raw = fs.readFileSync(historyFile, 'utf8');
+        const parsed = JSON.parse(raw);
+
+        if (!Array.isArray(parsed.emails)) {
+            return { updatedAt: null, emails: [] };
+        }
+
+        return {
+            updatedAt: parsed.updatedAt || null,
+            emails: parsed.emails
+        };
+    } catch (error) {
+        console.warn(`Aviso: nao foi possivel ler o historico existente (${error.message}). Um novo arquivo sera criado.`);
+        return { updatedAt: null, emails: [] };
+    }
+}
+
+function saveHistory(historyFile, history) {
+    fs.mkdirSync(path.dirname(historyFile), { recursive: true });
+    fs.writeFileSync(historyFile, JSON.stringify(history, null, 2));
+}
+
+function buildHistoryEntry({ from, to, status, buildNumber, subject, messageId, buildUrl, sentAt }) {
+    return {
+        buildNumber: String(buildNumber),
+        status,
+        subject,
+        messageId,
+        buildUrl: buildUrl || '',
+        sentAt: sentAt.toISOString(),
+        sentAtLabel: formatTimestamp(sentAt),
+        fromMasked: maskEmail(from),
+        toMasked: maskEmail(to)
+    };
+}
+
+function recordEmailHistory(historyFile, entry) {
+    if (!historyFile) {
+        return;
+    }
+
+    const history = loadHistory(historyFile);
+    history.updatedAt = entry.sentAtLabel;
+    history.emails = [entry, ...history.emails].slice(0, MAX_HISTORY_ITEMS);
+    saveHistory(historyFile, history);
+}
+
 async function sendEmail(from, to, password, status, buildNumber) {
     const transporter = createTransporter(from, password);
     const emailContent = generateEmailContent(status, buildNumber);
 
     const mailOptions = {
         from: `Jenkins CI/CD <${from}>`,
-        to: to,
+        to,
         subject: emailContent.subject,
         html: emailContent.html
     };
 
-    try {
-        const info = await transporter.sendMail(mailOptions);
-        console.log(`✅ E-mail enviado com sucesso: ${info.messageId}`);
-    } catch (error) {
-        console.error(`❌ Erro ao enviar e-mail: ${error.message}`);
-        process.exit(1);
-    }
+    const info = await transporter.sendMail(mailOptions);
+    return { info, emailContent };
 }
 
-// Main
 async function main() {
     const args = parseArgs();
 
-    const from        = args.from     || process.env.EMAIL_REMETENTE;
-    const to          = args.to       || process.env.EMAIL_DESTINO;
-    const password    = args.password || process.env.EMAIL_SENHA;
-    const status      = args.status   || process.env.BUILD_STATUS  || 'UNKNOWN';
-    const buildNumber = args.build    || process.env.BUILD_NUMBER   || '0';
+    const from = args.from || process.env.EMAIL_REMETENTE;
+    const to = args.to || process.env.EMAIL_DESTINO;
+    const password = args.password || process.env.EMAIL_SENHA;
+    const status = args.status || process.env.BUILD_STATUS || 'UNKNOWN';
+    const buildNumber = args.build || process.env.BUILD_NUMBER || '0';
+    const buildUrl = args['build-url'] || process.env.BUILD_URL || '';
+    const historyFile = args['history-file'] || process.env.EMAIL_HISTORY_FILE || '';
 
     if (!from || !to || !password) {
-        console.error('❌ Erro: EMAIL_REMETENTE, EMAIL_DESTINO e EMAIL_SENHA são obrigatórios');
-        console.error('Use --from, --to e --password ou variáveis de ambiente');
+        console.error('Erro: EMAIL_REMETENTE, EMAIL_DESTINO e EMAIL_SENHA sao obrigatorios.');
+        console.error('Use --from, --to e --password ou variaveis de ambiente.');
         process.exit(1);
     }
 
-    console.log(`📧 Remetente: ${from}`);
-    console.log(`📧 Destinatário: ${to}`);
-    console.log(`📊 Status: ${status} | Build: #${buildNumber}`);
+    console.log(`Remetente: ${from}`);
+    console.log(`Destinatario: ${to}`);
+    console.log(`Status: ${status} | Build: #${buildNumber}`);
 
-    await sendEmail(from, to, password, status, buildNumber);
+    try {
+        const { info, emailContent } = await sendEmail(from, to, password, status, buildNumber);
+        const sentAt = new Date();
+
+        console.log(`E-mail enviado com sucesso: ${info.messageId}`);
+
+        recordEmailHistory(
+            historyFile,
+            buildHistoryEntry({
+                from,
+                to,
+                status,
+                buildNumber,
+                subject: emailContent.subject,
+                messageId: info.messageId,
+                buildUrl,
+                sentAt
+            })
+        );
+
+        if (historyFile) {
+            console.log(`Historico atualizado em: ${historyFile}`);
+        }
+    } catch (error) {
+        console.error(`Erro ao enviar e-mail: ${error.message}`);
+        process.exit(1);
+    }
 }
 
-main();
+if (require.main === module) {
+    main();
+}
+
+module.exports = {
+    buildHistoryEntry,
+    formatTimestamp,
+    generateEmailContent,
+    loadHistory,
+    maskEmail,
+    parseArgs,
+    recordEmailHistory
+};

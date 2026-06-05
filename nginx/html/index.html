@@ -3,69 +3,542 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DevOps S07 - Playground QA</title>
+    <title>DevOps S07 | Painel da Pipeline</title>
     <style>
+        :root {
+            --bg: #f4efe5;
+            --surface: rgba(255, 250, 241, 0.92);
+            --surface-strong: #fffdf8;
+            --ink: #1f2933;
+            --muted: #586574;
+            --line: rgba(31, 41, 51, 0.12);
+            --accent: #bc5f2d;
+            --accent-soft: #f3d1b7;
+            --success: #1f7a3d;
+            --danger: #ad2e24;
+            --shadow: 0 24px 60px rgba(61, 42, 18, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 50px auto;
-            padding: 20px;
-            background-color: #f5f5f5;
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top left, rgba(188, 95, 45, 0.18), transparent 34%),
+                radial-gradient(circle at top right, rgba(31, 122, 61, 0.14), transparent 28%),
+                linear-gradient(160deg, #f8f1e7 0%, #f2ede4 52%, #ece7de 100%);
+            padding: 32px 18px 48px;
         }
-        .container {
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+
+        .shell {
+            max-width: 1180px;
+            margin: 0 auto;
         }
+
+        .hero {
+            background: linear-gradient(135deg, rgba(255, 248, 240, 0.96), rgba(244, 232, 218, 0.92));
+            border: 1px solid rgba(188, 95, 45, 0.2);
+            border-radius: 28px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 1.35fr 0.85fr;
+            gap: 24px;
+            padding: 34px;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: rgba(188, 95, 45, 0.12);
+            color: #7f3f1d;
+            font-size: 0.83rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
         h1 {
-            color: #333;
+            margin: 18px 0 14px;
+            font-size: clamp(2rem, 4vw, 3.8rem);
+            line-height: 1.02;
+            letter-spacing: -0.04em;
         }
-        .status {
-            display: inline-block;
-            padding: 8px 16px;
-            background-color: #4CAF50;
+
+        .hero p {
+            margin: 0;
+            max-width: 62ch;
+            color: var(--muted);
+            font-size: 1.04rem;
+            line-height: 1.7;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 24px;
+        }
+
+        .button {
+            appearance: none;
+            border: none;
+            border-radius: 999px;
+            padding: 12px 18px;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 160ms ease, box-shadow 160ms ease;
+            text-decoration: none;
+        }
+
+        .button:hover {
+            transform: translateY(-1px);
+        }
+
+        .button-primary {
+            background: var(--accent);
             color: white;
-            border-radius: 4px;
-            margin: 20px 0;
+            box-shadow: 0 10px 24px rgba(188, 95, 45, 0.22);
         }
-        .info {
-            background-color: #e7f3ff;
-            padding: 15px;
-            border-left: 4px solid #2196F3;
-            margin: 20px 0;
+
+        .button-secondary {
+            background: rgba(255, 255, 255, 0.7);
+            color: var(--ink);
+            border: 1px solid var(--line);
         }
-        code {
-            background-color: #f4f4f4;
-            padding: 2px 6px;
-            border-radius: 3px;
+
+        .hero-aside {
+            display: grid;
+            gap: 14px;
+            align-content: start;
+        }
+
+        .metric {
+            background: var(--surface-strong);
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: 18px;
+        }
+
+        .metric-label {
+            display: block;
+            color: var(--muted);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .metric-value {
+            display: block;
+            margin-top: 8px;
+            font-size: 1.7rem;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: 0.95fr 1.25fr;
+            gap: 22px;
+            margin-top: 22px;
+        }
+
+        .panel {
+            background: var(--surface);
+            border: 1px solid rgba(31, 41, 51, 0.09);
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+            padding: 24px;
+            backdrop-filter: blur(10px);
+        }
+
+        .panel h2 {
+            margin: 0 0 8px;
+            font-size: 1.25rem;
+            letter-spacing: -0.03em;
+        }
+
+        .panel-intro {
+            margin: 0 0 20px;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        .stack {
+            display: grid;
+            gap: 14px;
+        }
+
+        .service-card {
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.7);
+        }
+
+        .service-card strong {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 1rem;
+        }
+
+        .service-card span {
+            color: var(--muted);
+            line-height: 1.55;
+        }
+
+        .history-header {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .last-updated {
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .history-list {
+            display: grid;
+            gap: 14px;
+        }
+
+        .history-card {
+            background: var(--surface-strong);
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: 18px;
+        }
+
+        .history-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 102px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: white;
+        }
+
+        .status-success {
+            background: var(--success);
+        }
+
+        .status-failure,
+        .status-unknown {
+            background: var(--danger);
+        }
+
+        .build-pill {
+            color: var(--ink);
+            background: var(--accent-soft);
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-size: 0.86rem;
+            font-weight: 700;
+        }
+
+        .history-meta {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .meta-block {
+            display: grid;
+            gap: 4px;
+        }
+
+        .meta-label {
+            color: var(--muted);
+            font-size: 0.76rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .meta-value,
+        .meta-value a {
+            color: var(--ink);
+            word-break: break-word;
+            text-decoration: none;
+        }
+
+        .meta-value a:hover {
+            text-decoration: underline;
+        }
+
+        .empty-state {
+            border: 1px dashed rgba(31, 41, 51, 0.2);
+            border-radius: 18px;
+            padding: 28px;
+            color: var(--muted);
+            background: rgba(255, 255, 255, 0.54);
+            text-align: center;
+            line-height: 1.7;
+        }
+
+        .footer {
+            margin-top: 18px;
+            color: var(--muted);
+            font-size: 0.92rem;
+            text-align: center;
+        }
+
+        @media (max-width: 920px) {
+            .hero-grid,
+            .board {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 18px 12px 32px;
+            }
+
+            .hero-grid,
+            .panel {
+                padding: 20px;
+            }
+
+            .history-meta {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🚀 DevOps S07 - NP2</h1>
-        <div class="status">✅ Serviço Online</div>
-        
-        <div class="info">
-            <h3>Informações do Projeto</h3>
-            <p><strong>Grupo:</strong> S07 - Gerência de Configuração e Evolução de Software</p>
-            <p><strong>Tema:</strong> Aplicando DevOps na prática</p>
-            <p><strong>Tecnologias:</strong> Docker, Jenkins, Cypress, Nginx, Node.js</p>
-        </div>
-        
-        <h2>Endpoints Disponíveis</h2>
-        <ul>
-            <li><code>GET /api/data</code> - API mock para testes</li>
-            <li><code>GET /health</code> - Health check</li>
-        </ul>
-        
-        <h2>Testes Cypress</h2>
-        <p>Este servidor serve a aplicação que está sendo testada pelos testes Cypress automatizados.</p>
-        
-        <footer style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; color: #666;">
-            <p>Projeto acadêmico - INATEL S07</p>
-        </footer>
-    </div>
+    <main class="shell">
+        <section class="hero">
+            <div class="hero-grid">
+                <div>
+                    <span class="eyebrow">Nginx + Jenkins + Pipeline Mail</span>
+                    <h1>Painel publico das notificacoes enviadas pela pipeline</h1>
+                    <p>
+                        Este Nginx agora tem uma funcao visivel no projeto: servir um painel com o historico dos e-mails
+                        que o Jenkins enviou apos cada execucao. A pagina consome um arquivo JSON compartilhado entre os
+                        containers e mostra o status da build, o horario do envio e os destinatarios mascarados.
+                    </p>
+                    <div class="hero-actions">
+                        <button class="button button-primary" id="refresh-button" type="button">Atualizar historico</button>
+                        <a class="button button-secondary" href="data/email-history.json" target="_blank" rel="noreferrer">Abrir JSON bruto</a>
+                    </div>
+                </div>
+                <aside class="hero-aside">
+                    <article class="metric">
+                        <span class="metric-label">Papel do Nginx</span>
+                        <span class="metric-value">Dashboard de notificacoes</span>
+                    </article>
+                    <article class="metric">
+                        <span class="metric-label">Origem dos dados</span>
+                        <span class="metric-value">Jenkins post-always</span>
+                    </article>
+                    <article class="metric">
+                        <span class="metric-label">Arquivo servido</span>
+                        <span class="metric-value">/data/email-history.json</span>
+                    </article>
+                </aside>
+            </div>
+        </section>
+
+        <section class="board">
+            <article class="panel">
+                <h2>Como esse fluxo funciona</h2>
+                <p class="panel-intro">
+                    A pipeline envia o e-mail com o `script-email.js` e, logo depois, registra um resumo do envio em uma
+                    pasta compartilhada. O Nginx expoe essa pasta como conteudo estatico para a turma conseguir validar
+                    visualmente a trilha de notificacoes.
+                </p>
+                <div class="stack">
+                    <div class="service-card">
+                        <strong>Jenkins</strong>
+                        <span>Executa checkout, build da imagem, testes Cypress, empacotamento, push e notificacao.</span>
+                    </div>
+                    <div class="service-card">
+                        <strong>script-email.js</strong>
+                        <span>Envia o e-mail real e grava um resumo do envio com build, status, horario e destinatarios mascarados.</span>
+                    </div>
+                    <div class="service-card">
+                        <strong>Nginx</strong>
+                        <span>Serve este painel e o JSON compartilhado em `nginx/html/data/email-history.json`.</span>
+                    </div>
+                    <div class="service-card">
+                        <strong>Atualizacao automatica</strong>
+                        <span>O painel recarrega o historico a cada 30 segundos, sem precisar reiniciar os containers.</span>
+                    </div>
+                </div>
+            </article>
+
+            <article class="panel">
+                <div class="history-header">
+                    <div>
+                        <h2>Ultimos e-mails enviados</h2>
+                        <p class="panel-intro">A lista abaixo e alimentada pela propria pipeline Jenkins.</p>
+                    </div>
+                    <span class="last-updated" id="last-updated">Carregando historico...</span>
+                </div>
+                <div class="history-list" id="history-list"></div>
+            </article>
+        </section>
+
+        <p class="footer">
+            Projeto academico INATEL S07. O painel exibe apenas enderecos mascarados para nao expor dados completos.
+        </p>
+    </main>
+
+    <script>
+        const historyList = document.getElementById('history-list');
+        const lastUpdated = document.getElementById('last-updated');
+        const refreshButton = document.getElementById('refresh-button');
+        const historyUrl = 'data/email-history.json';
+
+        function statusClass(status) {
+            if (status === 'SUCCESS') {
+                return 'status-success';
+            }
+
+            if (status === 'FAILURE') {
+                return 'status-failure';
+            }
+
+            return 'status-unknown';
+        }
+
+        function renderEmptyState(message) {
+            historyList.innerHTML = '';
+
+            const empty = document.createElement('div');
+            empty.className = 'empty-state';
+            empty.textContent = message;
+
+            historyList.appendChild(empty);
+        }
+
+        function createMetaBlock(label, value) {
+            const block = document.createElement('div');
+            block.className = 'meta-block';
+
+            const title = document.createElement('span');
+            title.className = 'meta-label';
+            title.textContent = label;
+
+            const body = document.createElement('div');
+            body.className = 'meta-value';
+
+            if (value instanceof HTMLElement) {
+                body.appendChild(value);
+            } else {
+                body.textContent = value || '-';
+            }
+
+            block.appendChild(title);
+            block.appendChild(body);
+            return block;
+        }
+
+        function renderHistory(emails, updatedAt) {
+            historyList.innerHTML = '';
+
+            if (!emails.length) {
+                renderEmptyState('Nenhum e-mail registrado ainda. Rode a pipeline no Jenkins para preencher este painel.');
+                lastUpdated.textContent = 'Sem envios registrados';
+                return;
+            }
+
+            emails.forEach((email) => {
+                const card = document.createElement('article');
+                card.className = 'history-card';
+
+                const top = document.createElement('div');
+                top.className = 'history-top';
+
+                const status = document.createElement('span');
+                status.className = `status-badge ${statusClass(email.status)}`;
+                status.textContent = email.status || 'UNKNOWN';
+
+                const build = document.createElement('span');
+                build.className = 'build-pill';
+                build.textContent = `Build #${email.buildNumber || '-'}`;
+
+                top.appendChild(status);
+                top.appendChild(build);
+
+                const meta = document.createElement('div');
+                meta.className = 'history-meta';
+
+                meta.appendChild(createMetaBlock('Enviado em', email.sentAtLabel || email.sentAt || '-'));
+                meta.appendChild(createMetaBlock('Assunto', email.subject || '-'));
+                meta.appendChild(createMetaBlock('Remetente', email.fromMasked || '-'));
+                meta.appendChild(createMetaBlock('Destinatario', email.toMasked || '-'));
+                meta.appendChild(createMetaBlock('Message ID', email.messageId || '-'));
+
+                if (email.buildUrl) {
+                    const link = document.createElement('a');
+                    link.href = email.buildUrl;
+                    link.target = '_blank';
+                    link.rel = 'noreferrer';
+                    link.textContent = email.buildUrl;
+                    meta.appendChild(createMetaBlock('Link da build', link));
+                } else {
+                    meta.appendChild(createMetaBlock('Link da build', '-'));
+                }
+
+                card.appendChild(top);
+                card.appendChild(meta);
+                historyList.appendChild(card);
+            });
+
+            lastUpdated.textContent = updatedAt
+                ? `Ultima atualizacao: ${updatedAt}`
+                : 'Historico carregado';
+        }
+
+        async function loadHistory() {
+            try {
+                const response = await fetch(`${historyUrl}?t=${Date.now()}`, { cache: 'no-store' });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const history = await response.json();
+                renderHistory(history.emails || [], history.updatedAt || null);
+            } catch (error) {
+                lastUpdated.textContent = 'Falha ao carregar o historico';
+                renderEmptyState(`Nao foi possivel carregar ${historyUrl}. Detalhe: ${error.message}`);
+            }
+        }
+
+        refreshButton.addEventListener('click', loadHistory);
+        loadHistory();
+        window.setInterval(loadHistory, 30000);
+    </script>
 </body>
 </html>

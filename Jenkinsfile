@@ -15,9 +15,9 @@ pipeline {
         DOCKER_TAG = "${BUILD_NUMBER}"
 
         // Configuracoes do pipeline
-        CYPRESS_BASE_URL = 'http://nginx:80'
-        REPORT_DIR       = 'test-results'
-        BUILD_DIR        = 'build'
+        REPORT_DIR         = 'test-results'
+        BUILD_DIR          = 'build'
+        EMAIL_HISTORY_FILE = '/shared/nginx-data/email-history.json'
     }
 
     stages {
@@ -51,15 +51,13 @@ pipeline {
         stage('Testes') {
             steps {
                 script {
-                    echo 'Executando testes Cypress dentro da imagem Docker...'
+                    echo 'Executando os specs Cypress de testes/cypress/e2e dentro da imagem Docker...'
                     sh "mkdir -p ${REPORT_DIR}"
                     sh """
                         docker run --rm \
-                            -v \$PWD/testes:/app/testes \
                             -v \$PWD/${REPORT_DIR}:/app/${REPORT_DIR} \
-                            -e CYPRESS_BASE_URL=${CYPRESS_BASE_URL} \
                             ${DOCKER_IMAGE}:${DOCKER_TAG} \
-                            npx cypress run --browser electron --reporter junit --reporter-options "mochaFile=/app/${REPORT_DIR}/cypress-results.xml"
+                            npx cypress run --spec "cypress/e2e/**/*.cy.js" --browser electron --reporter junit --reporter-options "mochaFile=/app/${REPORT_DIR}/cypress-results.xml"
                     """
                 }
             }
@@ -119,13 +117,16 @@ pipeline {
                         fi
                     '''
                     def buildStatus = currentBuild.currentResult ?: 'UNKNOWN'
+                    sh 'mkdir -p /shared/nginx-data'
                     sh """
                         node script-email.js \
                             --from "${EMAIL_REMETENTE}" \
                             --to "${EMAIL_DESTINO}" \
                             --password "${EMAIL_SENHA}" \
                             --status "${buildStatus}" \
-                            --build "${BUILD_NUMBER}"
+                            --build "${BUILD_NUMBER}" \
+                            --build-url "${BUILD_URL}" \
+                            --history-file "${EMAIL_HISTORY_FILE}"
                     """
                 }
             }
