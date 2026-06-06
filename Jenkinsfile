@@ -52,12 +52,21 @@ pipeline {
             steps {
                 script {
                     echo 'Executando os specs Cypress de testes/cypress/e2e dentro da imagem Docker...'
-                    sh "mkdir -p ${REPORT_DIR}"
+                    sh "rm -rf ${REPORT_DIR} && mkdir -p ${REPORT_DIR}"
                     sh """
-                        docker run --rm \
-                            -v \$PWD/${REPORT_DIR}:/e2e/${REPORT_DIR} \
+                        container_name="s07-cypress-${BUILD_NUMBER}"
+
+                        docker rm -f "\$container_name" >/dev/null 2>&1 || true
+                        docker create --name "\$container_name" \
                             ${DOCKER_IMAGE}:${DOCKER_TAG} \
-                            cypress run --spec "cypress/e2e/**/*.cy.js" --browser electron --reporter junit --reporter-options "mochaFile=/e2e/${REPORT_DIR}/cypress-results-[hash].xml"
+                            cypress run --spec "cypress/e2e/**/*.cy.js" --browser electron --reporter junit --reporter-options "mochaFile=/e2e/${REPORT_DIR}/cypress-results-[hash].xml" >/dev/null
+
+                        test_exit_code=0
+                        docker start -a "\$container_name" || test_exit_code=\$?
+                        docker cp "\$container_name:/e2e/${REPORT_DIR}/." "${REPORT_DIR}/" >/dev/null 2>&1 || true
+                        docker rm -f "\$container_name" >/dev/null 2>&1 || true
+
+                        exit "\$test_exit_code"
                     """
                 }
             }

@@ -233,6 +233,12 @@
             margin-bottom: 14px;
         }
 
+        .history-statuses {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
         .status-badge {
             display: inline-flex;
             align-items: center;
@@ -253,6 +259,14 @@
 
         .status-failure,
         .status-unknown {
+            background: var(--danger);
+        }
+
+        .status-sent {
+            background: var(--success);
+        }
+
+        .status-delivery-failed {
             background: var(--danger);
         }
 
@@ -292,6 +306,16 @@
 
         .meta-value a:hover {
             text-decoration: underline;
+        }
+
+        .error-banner {
+            margin-top: 14px;
+            border: 1px solid rgba(173, 46, 36, 0.18);
+            border-radius: 16px;
+            padding: 12px 14px;
+            background: rgba(173, 46, 36, 0.08);
+            color: var(--danger);
+            line-height: 1.5;
         }
 
         .empty-state {
@@ -340,11 +364,12 @@
             <div class="hero-grid">
                 <div>
                     <span class="eyebrow">Nginx + Jenkins + Pipeline Mail</span>
-                    <h1>Painel publico das notificacoes enviadas pela pipeline</h1>
+                    <h1>Painel publico das notificacoes e tentativas da pipeline</h1>
                     <p>
                         Este Nginx agora tem uma funcao visivel no projeto: servir um painel com o historico dos e-mails
-                        que o Jenkins enviou apos cada execucao. A pagina consome um arquivo JSON compartilhado entre os
-                        containers e mostra o status da build, o horario do envio e os destinatarios mascarados.
+                        que o Jenkins tentou enviar apos cada execucao. A pagina consome um arquivo JSON compartilhado
+                        entre os containers e mostra o status da build, o resultado do envio, o horario e os
+                        destinatarios mascarados.
                     </p>
                     <div class="hero-actions">
                         <button class="button button-primary" id="refresh-button" type="button">Atualizar historico</button>
@@ -383,7 +408,7 @@
                     </div>
                     <div class="service-card">
                         <strong>script-email.js</strong>
-                        <span>Envia o e-mail real e grava um resumo do envio com build, status, horario e destinatarios mascarados.</span>
+                        <span>Envia o e-mail real e grava um resumo da tentativa com build, status, resultado do envio, horario e destinatarios mascarados.</span>
                     </div>
                     <div class="service-card">
                         <strong>Nginx</strong>
@@ -399,8 +424,8 @@
             <article class="panel">
                 <div class="history-header">
                     <div>
-                        <h2>Ultimos e-mails enviados</h2>
-                        <p class="panel-intro">A lista abaixo e alimentada pela propria pipeline Jenkins.</p>
+                        <h2>Ultimas tentativas de notificacao</h2>
+                        <p class="panel-intro">A lista abaixo e alimentada pela propria pipeline Jenkins, com sucessos e falhas.</p>
                     </div>
                     <span class="last-updated" id="last-updated">Carregando historico...</span>
                 </div>
@@ -426,6 +451,18 @@
 
             if (status === 'FAILURE') {
                 return 'status-failure';
+            }
+
+            return 'status-unknown';
+        }
+
+        function deliveryClass(status) {
+            if (status === 'SENT') {
+                return 'status-sent';
+            }
+
+            if (status === 'FAILED') {
+                return 'status-delivery-failed';
             }
 
             return 'status-unknown';
@@ -479,15 +516,24 @@
                 const top = document.createElement('div');
                 top.className = 'history-top';
 
-                const status = document.createElement('span');
-                status.className = `status-badge ${statusClass(email.status)}`;
-                status.textContent = email.status || 'UNKNOWN';
+                const statuses = document.createElement('div');
+                statuses.className = 'history-statuses';
+
+                const buildStatus = document.createElement('span');
+                buildStatus.className = `status-badge ${statusClass(email.status)}`;
+                buildStatus.textContent = `Build ${email.status || 'UNKNOWN'}`;
+
+                const deliveryStatus = document.createElement('span');
+                deliveryStatus.className = `status-badge ${deliveryClass(email.deliveryStatus)}`;
+                deliveryStatus.textContent = `E-mail ${email.deliveryStatus || 'UNKNOWN'}`;
 
                 const build = document.createElement('span');
                 build.className = 'build-pill';
                 build.textContent = `Build #${email.buildNumber || '-'}`;
 
-                top.appendChild(status);
+                statuses.appendChild(buildStatus);
+                statuses.appendChild(deliveryStatus);
+                top.appendChild(statuses);
                 top.appendChild(build);
 
                 const meta = document.createElement('div');
@@ -512,6 +558,14 @@
 
                 card.appendChild(top);
                 card.appendChild(meta);
+
+                if (email.errorMessage) {
+                    const errorBanner = document.createElement('div');
+                    errorBanner.className = 'error-banner';
+                    errorBanner.textContent = `Falha no envio: ${email.errorMessage}`;
+                    card.appendChild(errorBanner);
+                }
+
                 historyList.appendChild(card);
             });
 

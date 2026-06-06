@@ -18,7 +18,7 @@ O ambiente principal usa 4 containers:
 - `docker-compose.yml` sobe Jenkins, Cypress, Nginx e Node app na rede `devops-network`.
 - O `Jenkins` usa o socket Docker do host para construir imagens e executar o pipeline.
 - O `Dockerfile` usa a imagem oficial `cypress/included:15.13.1` como base para evitar problemas de dependencias graficas no ambiente do Jenkins.
-- O `script-email.js` envia os e-mails da pipeline e grava um resumo em `nginx/html/data/email-history.json`.
+- O `script-email.js` envia os e-mails da pipeline e grava um resumo de cada tentativa em `nginx/html/data/email-history.json`.
 - O `nginx` serve `nginx/html/index.html` e publica o historico em `http://localhost:80`.
 - Os testes automatizados ficam em `testes/cypress/e2e/` e sao executados pelo pipeline via Cypress headless.
 
@@ -77,6 +77,13 @@ Crie estas credentials em **Jenkins -> Manage Jenkins -> Credentials**:
 | `email-senha` | Secret text | Senha de app do Gmail |
 | `docker-hub-credentials` | Username with password | Usuario e token do Docker Hub |
 
+Importante para Gmail:
+
+- a conta usada em `email-remetente` precisa estar com verificacao em duas etapas ativada
+- o valor de `email-senha` nao deve ser a senha normal da conta
+- o valor correto e uma `App Password` de 16 caracteres gerada no Google Account
+- se isso nao estiver configurado, o Jenkins falha no envio com erro `534-5.7.9 Application-specific password required`
+
 ### Criar o job
 
 1. Jenkins -> **New Item** -> Pipeline
@@ -126,13 +133,13 @@ O `Jenkinsfile` executa este fluxo:
 
 No bloco `post { always { ... } }`, o pipeline:
 
-- envia o e-mail com `script-email.js`
-- atualiza `nginx/html/data/email-history.json`
+- tenta enviar o e-mail com `script-email.js`
+- atualiza `nginx/html/data/email-history.json` mesmo quando o envio falha
 - arquiva o `.tar.gz`
 - arquiva o XML do Cypress
 - limpa o workspace
 
-Se o envio de e-mail falhar por credencial SMTP, o pipeline passa a registrar um aviso e seguir com o resultado principal da build, sem mascarar o status real dos testes.
+Se o envio de e-mail falhar por credencial SMTP, o pipeline registra um aviso, grava a falha no painel do Nginx e segue com o resultado principal da build, sem mascarar o status real dos testes.
 
 ### Artefatos arquivados
 
@@ -147,24 +154,28 @@ O `nginx` agora tem uma funcao direta no projeto: exibir os e-mails enviados pel
 
 - O `docker-compose` monta `./nginx/html/data` dentro do container do Jenkins em `/shared/nginx-data`.
 - O `Jenkinsfile` chama o `script-email.js` com `--history-file "/shared/nginx-data/email-history.json"`.
-- Depois de um envio bem-sucedido, o script grava um registro com:
+- Depois de cada tentativa, o script grava um registro com:
   - `buildNumber`
-  - `status`
+  - `status` da build
+  - `deliveryStatus` do e-mail (`SENT` ou `FAILED`)
   - `subject`
   - `messageId`
   - `buildUrl`
   - horario do envio
   - remetente e destinatario mascarados
+  - mensagem de erro, quando existir
 - O `index.html` do Nginx faz `fetch` do JSON e renderiza o historico no browser.
 
 ### O que aparece na tela
 
 - status da build
+- status do envio do e-mail
 - numero da build
 - assunto do e-mail
 - horario do envio
 - link da build, quando disponivel
 - remetente e destinatario mascarados
+- erro de autenticacao ou transporte, quando houver
 
 ## Script de e-mail
 

@@ -148,17 +148,30 @@ function saveHistory(historyFile, history) {
     fs.writeFileSync(historyFile, JSON.stringify(history, null, 2));
 }
 
-function buildHistoryEntry({ from, to, status, buildNumber, subject, messageId, buildUrl, sentAt }) {
+function buildHistoryEntry({
+    from,
+    to,
+    status,
+    buildNumber,
+    subject,
+    messageId,
+    buildUrl,
+    sentAt,
+    deliveryStatus,
+    errorMessage
+}) {
     return {
         buildNumber: String(buildNumber),
         status,
         subject,
-        messageId,
+        messageId: messageId || '',
         buildUrl: buildUrl || '',
         sentAt: sentAt.toISOString(),
         sentAtLabel: formatTimestamp(sentAt),
         fromMasked: maskEmail(from),
-        toMasked: maskEmail(to)
+        toMasked: maskEmail(to),
+        deliveryStatus: deliveryStatus || 'UNKNOWN',
+        errorMessage: errorMessage || ''
     };
 }
 
@@ -225,7 +238,8 @@ async function main() {
                 subject: emailContent.subject,
                 messageId: info.messageId,
                 buildUrl,
-                sentAt
+                sentAt,
+                deliveryStatus: 'SENT'
             })
         );
 
@@ -233,6 +247,29 @@ async function main() {
             console.log(`Historico atualizado em: ${historyFile}`);
         }
     } catch (error) {
+        const sentAt = new Date();
+        const emailContent = generateEmailContent(status, buildNumber);
+
+        recordEmailHistory(
+            historyFile,
+            buildHistoryEntry({
+                from,
+                to,
+                status,
+                buildNumber,
+                subject: emailContent.subject,
+                messageId: '',
+                buildUrl,
+                sentAt,
+                deliveryStatus: 'FAILED',
+                errorMessage: error.message
+            })
+        );
+
+        if (historyFile) {
+            console.log(`Historico atualizado com falha em: ${historyFile}`);
+        }
+
         console.error(`Erro ao enviar e-mail: ${error.message}`);
         process.exit(1);
     }
