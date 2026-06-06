@@ -5,6 +5,7 @@ const selectors = {
   loginPassword: '[data-testid="login-password"]',
   loginButton: '[data-testid="login-button"]',
   loginError: '[data-testid="login-error"]',
+  loginAttempts: '[data-testid="login-attempts"]',
 };
 
 describe("Playground - autenticacao", () => {
@@ -14,19 +15,19 @@ describe("Playground - autenticacao", () => {
 
   // Caso originalmente adicionado por: Eduardo
   it("deve bloquear o login apos 3 tentativas com senha errada", () => {
-    const tentarLogin = () => {
-      cy.visit(PLAYGROUND_URL);
-      cy.get('input[type="email"]').last().type("admin@test.com");
-      cy.get('input[type="password"]').last().type("senhaerrada123");
-      cy.contains("button", "Entrar").click();
-      cy.wait(1000);
-    };
+    cy.get(selectors.loginEmail)
+      .should("be.visible")
+      .type("admin@test.com", { force: true });
+    cy.get(selectors.loginPassword)
+      .should("be.visible")
+      .type("senhaerrada123", { force: true });
 
-    tentarLogin();
-    tentarLogin();
-    tentarLogin();
+    cy.get(selectors.loginButton).click();
+    cy.get(selectors.loginButton).click();
+    cy.get(selectors.loginButton).click();
 
-    cy.contains(/bloqueado|limite|tentativas|erro/i).should("be.visible");
+    cy.get(selectors.loginAttempts).should("contain", "3").and("contain", "/3");
+    cy.get(selectors.loginError).should("be.visible");
   });
 
   // Caso originalmente adicionado por: Felipe

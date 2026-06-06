@@ -57,13 +57,13 @@ pipeline {
                         docker run --rm \
                             -v \$PWD/${REPORT_DIR}:/e2e/${REPORT_DIR} \
                             ${DOCKER_IMAGE}:${DOCKER_TAG} \
-                            cypress run --spec "cypress/e2e/**/*.cy.js" --browser electron --reporter junit --reporter-options "mochaFile=/e2e/${REPORT_DIR}/cypress-results.xml"
+                            cypress run --spec "cypress/e2e/**/*.cy.js" --browser electron --reporter junit --reporter-options "mochaFile=/e2e/${REPORT_DIR}/cypress-results-[hash].xml"
                     """
                 }
             }
             post {
                 always {
-                    junit allowEmptyResults: true, testResults: '**/test-results/*.xml'
+                    junit allowEmptyResults: true, testResults: "${REPORT_DIR}/**/*.xml"
                 }
             }
         }
@@ -136,7 +136,7 @@ pipeline {
                 }
             }
             archiveArtifacts artifacts: '**/build/*.tar.gz',     allowEmptyArchive: true
-            archiveArtifacts artifacts: '**/test-results/*.xml', allowEmptyArchive: true
+            archiveArtifacts artifacts: "${REPORT_DIR}/**/*.xml", allowEmptyArchive: true
             cleanWs()
         }
         success {

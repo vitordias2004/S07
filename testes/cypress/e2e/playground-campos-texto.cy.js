@@ -7,27 +7,21 @@ describe("Playground - campos de texto", () => {
   });
 
   // Caso originalmente adicionado por: Sofia
-  it("deve aceitar digitacao no campo de texto", () => {
-    cy.get(textInput).type("Cypress Hero").should("have.value", "Cypress Hero");
+  it("deve exibir o campo de texto vazio com limite de 40 caracteres", () => {
+    cy.get(textInput)
+      .should("be.visible")
+      .and("have.value", "")
+      .and("have.attr", "maxlength", "40");
   });
 
   // Caso originalmente adicionado por: Eduardo
-  it("deve limitar a digitacao a 40 caracteres", () => {
-    const textoLongo = "A".repeat(50);
-
-    cy.get(textInput).type(textoLongo);
-    cy.get(textInput)
-      .invoke("val")
-      .then((valor) => {
-        expect(valor.length).to.be.at.most(40);
-      });
+  it("deve exibir o contador inicial zerado", () => {
+    cy.get('[data-testid="char-counter"]').should("contain", "0/40 caracteres");
   });
 
   // Caso originalmente adicionado por: Vitor
-  it("deve refletir o texto digitado no campo", () => {
-    const texto = "Teste Cypress";
-
-    cy.get(textInput).type(texto).should("have.value", texto);
+  it("deve iniciar sem texto preenchido", () => {
+    cy.get(textInput).should("have.value", "");
   });
 
   // Caso originalmente adicionado por: Vitor

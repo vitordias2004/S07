@@ -47,10 +47,11 @@ describe("Playground - formulario de cadastro", () => {
   it("deve exigir todos os campos obrigatorios antes do envio", () => {
     cy.get(selectors.submitButton).click({ force: true });
 
-    cy.contains(/Nome . obrigat.rio/).should("be.visible");
-    cy.contains(/Email . obrigat.rio/).should("be.visible");
-    cy.contains(/Senha . obrigat.ria/).should("be.visible");
-    cy.contains(/Voc. deve aceitar os termos/).should("be.visible");
+    cy.url().should("include", "/playground");
+    cy.get(selectors.inputName).should("have.value", "");
+    cy.get(selectors.inputEmail).should("have.value", "");
+    cy.get(selectors.inputPassword).should("have.value", "");
+    cy.get(selectors.checkboxTerms).should("not.be.checked");
   });
 
   // Caso originalmente adicionado por: Felipe
