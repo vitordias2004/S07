@@ -17,6 +17,7 @@ O ambiente principal usa 4 containers:
 
 - `docker-compose.yml` sobe Jenkins, Cypress, Nginx e Node app na rede `devops-network`.
 - O `Jenkins` usa o socket Docker do host para construir imagens e executar o pipeline.
+- O `Dockerfile` usa a imagem oficial `cypress/included:15.13.1` como base para evitar problemas de dependencias graficas no ambiente do Jenkins.
 - O `script-email.js` envia os e-mails da pipeline e grava um resumo em `nginx/html/data/email-history.json`.
 - O `nginx` serve `nginx/html/index.html` e publica o historico em `http://localhost:80`.
 - Os testes automatizados ficam em `testes/cypress/e2e/` e sao executados pelo pipeline via Cypress headless.
@@ -130,6 +131,8 @@ No bloco `post { always { ... } }`, o pipeline:
 - arquiva o `.tar.gz`
 - arquiva o XML do Cypress
 - limpa o workspace
+
+Se o envio de e-mail falhar por credencial SMTP, o pipeline passa a registrar um aviso e seguir com o resultado principal da build, sem mascarar o status real dos testes.
 
 ### Artefatos arquivados
 

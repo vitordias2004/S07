@@ -55,9 +55,9 @@ pipeline {
                     sh "mkdir -p ${REPORT_DIR}"
                     sh """
                         docker run --rm \
-                            -v \$PWD/${REPORT_DIR}:/app/${REPORT_DIR} \
+                            -v \$PWD/${REPORT_DIR}:/e2e/${REPORT_DIR} \
                             ${DOCKER_IMAGE}:${DOCKER_TAG} \
-                            xvfb-run -a npx cypress run --spec "cypress/e2e/**/*.cy.js" --browser electron --reporter junit --reporter-options "mochaFile=/app/${REPORT_DIR}/cypress-results.xml"
+                            cypress run --spec "cypress/e2e/**/*.cy.js" --browser electron --reporter junit --reporter-options "mochaFile=/e2e/${REPORT_DIR}/cypress-results.xml"
                     """
                 }
             }
@@ -108,27 +108,31 @@ pipeline {
     post {
         always {
             echo 'Pipeline finalizado!'
-            catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                script {
-                    echo 'Enviando notificacao por e-mail...'
-                    sh '''
-                        if [ ! -d node_modules/nodemailer ]; then
-                            npm install --omit=dev
-                        fi
-                    '''
-                    def buildStatus = currentBuild.currentResult ?: 'UNKNOWN'
-                    def buildUrl = env.BUILD_URL ?: ''
-                    sh 'mkdir -p /shared/nginx-data'
-                    sh """
-                        node script-email.js \
-                            --from "${EMAIL_REMETENTE}" \
-                            --to "${EMAIL_DESTINO}" \
-                            --password "${EMAIL_SENHA}" \
-                            --status "${buildStatus}" \
-                            --build "${BUILD_NUMBER}" \
-                            --build-url "${buildUrl}" \
-                            --history-file "${EMAIL_HISTORY_FILE}"
-                    """
+            script {
+                echo 'Enviando notificacao por e-mail...'
+                sh '''
+                    if [ ! -d node_modules/nodemailer ]; then
+                        npm install --omit=dev
+                    fi
+                '''
+                def buildStatus = currentBuild.currentResult ?: 'UNKNOWN'
+                def buildUrl = env.BUILD_URL ?: ''
+                sh 'mkdir -p /shared/nginx-data'
+                def emailExitCode = withEnv([
+                    "BUILD_STATUS=${buildStatus}",
+                    "BUILD_URL=${buildUrl}",
+                    "EMAIL_HISTORY_FILE=${EMAIL_HISTORY_FILE}"
+                ]) {
+                    sh(
+                        script: '''
+                            node script-email.js
+                        ''',
+                        returnStatus: true
+                    )
+                }
+
+                if (emailExitCode != 0) {
+                    echo 'Aviso: falha ao enviar a notificacao por e-mail. A pipeline seguira com o resultado principal da build.'
                 }
             }
             archiveArtifacts artifacts: '**/build/*.tar.gz',     allowEmptyArchive: true
