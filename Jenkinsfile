@@ -13,9 +13,11 @@ pipeline {
         // Configuracoes do Docker Hub
         DOCKER_IMAGE = "${DOCKER_HUB_CREDS_USR}/s07-devops"
         DOCKER_TAG = "${BUILD_NUMBER}"
+        NODE_APP_IMAGE = "s07-node-app"
 
         // Configuracoes do pipeline
         REPORT_DIR         = 'test-results'
+        NODE_RESULTS_DIR   = 'node-results'
         BUILD_DIR          = 'build'
         EMAIL_HISTORY_FILE = '/shared/nginx-data/email-history.json'
     }
@@ -36,13 +38,14 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Build Docker Images') {
             steps {
                 script {
-                    echo 'Building Docker image...'
+                    echo 'Building Docker images...'
                     sh """
                         docker build -f Dockerfile -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
                         docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest
+                        docker build -f app/Dockerfile -t ${NODE_APP_IMAGE}:${DOCKER_TAG} app
                     """
                 }
             }
@@ -51,20 +54,58 @@ pipeline {
         stage('Testes') {
             steps {
                 script {
-                    echo 'Executando os specs Cypress de testes/cypress/e2e dentro da imagem Docker...'
-                    sh "rm -rf ${REPORT_DIR} && mkdir -p ${REPORT_DIR}"
+                    echo 'Executando os specs Cypress com o node-app como coletor de resultados...'
                     sh """
-                        container_name="s07-cypress-${BUILD_NUMBER}"
+                        test_network="s07-tests-${BUILD_NUMBER}"
+                        node_container="s07-node-app-${BUILD_NUMBER}"
+                        cypress_container="s07-cypress-${BUILD_NUMBER}"
 
-                        docker rm -f "\$container_name" >/dev/null 2>&1 || true
-                        docker create --name "\$container_name" \
+                        rm -rf ${REPORT_DIR} ${NODE_RESULTS_DIR}
+                        mkdir -p ${REPORT_DIR} ${NODE_RESULTS_DIR}
+
+                        cleanup() {
+                            docker cp "\$cypress_container:/e2e/${REPORT_DIR}/." "${REPORT_DIR}/" >/dev/null 2>&1 || true
+                            docker cp "\$node_container:/data/." "${NODE_RESULTS_DIR}/" >/dev/null 2>&1 || true
+                            docker rm -f "\$cypress_container" >/dev/null 2>&1 || true
+                            docker rm -f "\$node_container" >/dev/null 2>&1 || true
+                            docker network rm "\$test_network" >/dev/null 2>&1 || true
+                        }
+
+                        trap cleanup EXIT
+
+                        docker rm -f "\$cypress_container" >/dev/null 2>&1 || true
+                        docker rm -f "\$node_container" >/dev/null 2>&1 || true
+                        docker network rm "\$test_network" >/dev/null 2>&1 || true
+                        docker network create "\$test_network" >/dev/null
+
+                        docker run -d \
+                            --name "\$node_container" \
+                            --network "\$test_network" \
+                            --network-alias node-app \
+                            ${NODE_APP_IMAGE}:${DOCKER_TAG} >/dev/null
+
+                        for attempt in \$(seq 1 20); do
+                            if docker exec "\$node_container" node -e "require('http').get('http://localhost:3000/health', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"; then
+                                break
+                            fi
+
+                            if [ "\$attempt" -eq 20 ]; then
+                                echo 'Node app nao respondeu ao healthcheck a tempo.'
+                                docker logs "\$node_container" || true
+                                exit 1
+                            fi
+
+                            sleep 2
+                        done
+
+                        docker create --name "\$cypress_container" \
+                            --network "\$test_network" \
+                            -e NODE_APP_URL="http://node-app:3000" \
                             ${DOCKER_IMAGE}:${DOCKER_TAG} \
-                            cypress run --spec "cypress/e2e/**/*.cy.js" --browser electron --reporter junit --reporter-options "mochaFile=/e2e/${REPORT_DIR}/cypress-results-[hash].xml" >/dev/null
+                            --spec "cypress/e2e/**/*.cy.js" --browser electron --reporter junit --reporter-options "mochaFile=/e2e/${REPORT_DIR}/cypress-results-[hash].xml" >/dev/null
 
                         test_exit_code=0
-                        docker start -a "\$container_name" || test_exit_code=\$?
-                        docker cp "\$container_name:/e2e/${REPORT_DIR}/." "${REPORT_DIR}/" >/dev/null 2>&1 || true
-                        docker rm -f "\$container_name" >/dev/null 2>&1 || true
+                        docker start -a "\$cypress_container" || test_exit_code=\$?
 
                         exit "\$test_exit_code"
                     """
@@ -90,6 +131,7 @@ pipeline {
                             --exclude='./app/node_modules' \
                             --exclude='./${BUILD_DIR}' \
                             --exclude='./${REPORT_DIR}' \
+                            --exclude='./${NODE_RESULTS_DIR}' \
                             .
                     """
                 }
@@ -144,8 +186,9 @@ pipeline {
                     echo 'Aviso: falha ao enviar a notificacao por e-mail. A pipeline seguira com o resultado principal da build.'
                 }
             }
-            archiveArtifacts artifacts: '**/build/*.tar.gz',     allowEmptyArchive: true
-            archiveArtifacts artifacts: "${REPORT_DIR}/**/*.xml", allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/build/*.tar.gz',            allowEmptyArchive: true
+            archiveArtifacts artifacts: "${REPORT_DIR}/**/*.xml",       allowEmptyArchive: true
+            archiveArtifacts artifacts: "${NODE_RESULTS_DIR}/**/*.json", allowEmptyArchive: true
             cleanWs()
         }
         success {

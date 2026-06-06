@@ -18,6 +18,7 @@ O ambiente principal usa 4 containers:
 - `docker-compose.yml` sobe Jenkins, Cypress, Nginx e Node app na rede `devops-network`.
 - O `Jenkins` usa o socket Docker do host para construir imagens e executar o pipeline.
 - O `Dockerfile` usa a imagem oficial `cypress/included:15.13.1` como base para evitar problemas de dependencias graficas no ambiente do Jenkins.
+- O `app/Dockerfile` sobe a API mock que recebe os resultados enviados pelo Cypress em `/api/results`.
 - O `script-email.js` envia os e-mails da pipeline e grava um resumo de cada tentativa em `nginx/html/data/email-history.json`.
 - O `nginx` serve `nginx/html/index.html` e publica o historico em `http://localhost:80`.
 - Os testes automatizados ficam em `testes/cypress/e2e/` e sao executados pelo pipeline via Cypress headless.
@@ -126,8 +127,8 @@ O `Jenkinsfile` executa este fluxo:
 
 1. **Checkout**: baixa o codigo do repositario.
 2. **Install Email Dependencies**: instala o `nodemailer` na raiz para o script de notificacao.
-3. **Build Docker Image**: gera a imagem usada para executar os testes Cypress.
-4. **Testes**: executa os specs de `testes/cypress/e2e` em modo headless e publica o relatorio JUnit.
+3. **Build Docker Images**: gera a imagem dos testes Cypress e a imagem do `node-app`.
+4. **Testes**: sobe o `node-app` em uma rede Docker isolada, injeta `NODE_APP_URL` no Cypress, executa os specs de `testes/cypress/e2e`, publica o relatorio JUnit e coleta o `results.json`.
 5. **Build**: empacota o repositorio em `.tar.gz`, excluindo diretorios gerados.
 6. **Push to Docker Hub**: publica a imagem quando a branch e `main`.
 
@@ -137,6 +138,7 @@ No bloco `post { always { ... } }`, o pipeline:
 - atualiza `nginx/html/data/email-history.json` mesmo quando o envio falha
 - arquiva o `.tar.gz`
 - arquiva o XML do Cypress
+- arquiva o JSON de resultados coletado pelo `node-app`
 - limpa o workspace
 
 Se o envio de e-mail falhar por credencial SMTP, o pipeline registra um aviso, grava a falha no painel do Nginx e segue com o resultado principal da build, sem mascarar o status real dos testes.
@@ -145,6 +147,7 @@ Se o envio de e-mail falhar por credencial SMTP, o pipeline registra um aviso, g
 
 - `build/app-build-<timestamp>.tar.gz`
 - `test-results/cypress-results.xml`
+- `node-results/results.json`
 
 ## Painel Nginx de notificacoes
 

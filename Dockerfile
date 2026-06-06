@@ -7,4 +7,4 @@ WORKDIR /e2e
 
 COPY testes/ ./
 
-CMD ["cypress", "run", "--spec", "cypress/e2e/**/*.cy.js", "--browser", "electron"]
+CMD ["--spec", "cypress/e2e/**/*.cy.js", "--browser", "electron"]
