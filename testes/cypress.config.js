@@ -5,7 +5,8 @@ module.exports = defineConfig({
 
   e2e: {
     setupNodeEvents(on, config) {
-      // implement node event listeners here
+      config.env.NODE_APP_URL = process.env.NODE_APP_URL || config.env.NODE_APP_URL;
+      return config;
     },
   },
 });
