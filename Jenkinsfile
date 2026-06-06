@@ -15,9 +15,9 @@ pipeline {
         DOCKER_TAG = "${BUILD_NUMBER}"
 
         // Configuracoes do pipeline
-        CYPRESS_BASE_URL = 'http://nginx:80'
-        REPORT_DIR       = 'test-results'
-        BUILD_DIR        = 'build'
+        REPORT_DIR         = 'test-results'
+        BUILD_DIR          = 'build'
+        EMAIL_HISTORY_FILE = '/shared/nginx-data/email-history.json'
     }
 
     stages {
@@ -51,21 +51,28 @@ pipeline {
         stage('Testes') {
             steps {
                 script {
-                    echo 'Executando testes Cypress dentro da imagem Docker...'
-                    sh "mkdir -p ${REPORT_DIR}"
+                    echo 'Executando os specs Cypress de testes/cypress/e2e dentro da imagem Docker...'
+                    sh "rm -rf ${REPORT_DIR} && mkdir -p ${REPORT_DIR}"
                     sh """
-                        docker run --rm \
-                            -v \$PWD/testes:/app/testes \
-                            -v \$PWD/${REPORT_DIR}:/app/${REPORT_DIR} \
-                            -e CYPRESS_BASE_URL=${CYPRESS_BASE_URL} \
+                        container_name="s07-cypress-${BUILD_NUMBER}"
+
+                        docker rm -f "\$container_name" >/dev/null 2>&1 || true
+                        docker create --name "\$container_name" \
                             ${DOCKER_IMAGE}:${DOCKER_TAG} \
-                            npx cypress run --browser electron --reporter junit --reporter-options "mochaFile=/app/${REPORT_DIR}/cypress-results.xml"
+                            cypress run --spec "cypress/e2e/**/*.cy.js" --browser electron --reporter junit --reporter-options "mochaFile=/e2e/${REPORT_DIR}/cypress-results-[hash].xml" >/dev/null
+
+                        test_exit_code=0
+                        docker start -a "\$container_name" || test_exit_code=\$?
+                        docker cp "\$container_name:/e2e/${REPORT_DIR}/." "${REPORT_DIR}/" >/dev/null 2>&1 || true
+                        docker rm -f "\$container_name" >/dev/null 2>&1 || true
+
+                        exit "\$test_exit_code"
                     """
                 }
             }
             post {
                 always {
-                    junit allowEmptyResults: true, testResults: '**/test-results/*.xml'
+                    junit allowEmptyResults: true, testResults: "${REPORT_DIR}/**/*.xml"
                 }
             }
         }
@@ -110,27 +117,35 @@ pipeline {
     post {
         always {
             echo 'Pipeline finalizado!'
-            catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                script {
-                    echo 'Enviando notificacao por e-mail...'
-                    sh '''
-                        if [ ! -d node_modules/nodemailer ]; then
-                            npm install --omit=dev
-                        fi
-                    '''
-                    def buildStatus = currentBuild.currentResult ?: 'UNKNOWN'
-                    sh """
-                        node script-email.js \
-                            --from "${EMAIL_REMETENTE}" \
-                            --to "${EMAIL_DESTINO}" \
-                            --password "${EMAIL_SENHA}" \
-                            --status "${buildStatus}" \
-                            --build "${BUILD_NUMBER}"
-                    """
+            script {
+                echo 'Enviando notificacao por e-mail...'
+                sh '''
+                    if [ ! -d node_modules/nodemailer ]; then
+                        npm install --omit=dev
+                    fi
+                '''
+                def buildStatus = currentBuild.currentResult ?: 'UNKNOWN'
+                def buildUrl = env.BUILD_URL ?: ''
+                sh 'mkdir -p /shared/nginx-data'
+                def emailExitCode = withEnv([
+                    "BUILD_STATUS=${buildStatus}",
+                    "BUILD_URL=${buildUrl}",
+                    "EMAIL_HISTORY_FILE=${EMAIL_HISTORY_FILE}"
+                ]) {
+                    sh(
+                        script: '''
+                            node script-email.js
+                        ''',
+                        returnStatus: true
+                    )
+                }
+
+                if (emailExitCode != 0) {
+                    echo 'Aviso: falha ao enviar a notificacao por e-mail. A pipeline seguira com o resultado principal da build.'
                 }
             }
             archiveArtifacts artifacts: '**/build/*.tar.gz',     allowEmptyArchive: true
-            archiveArtifacts artifacts: '**/test-results/*.xml', allowEmptyArchive: true
+            archiveArtifacts artifacts: "${REPORT_DIR}/**/*.xml", allowEmptyArchive: true
             cleanWs()
         }
         success {

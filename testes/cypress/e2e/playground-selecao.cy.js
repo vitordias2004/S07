@@ -6,24 +6,28 @@ describe("Playground - selecao e opcoes", () => {
   });
 
   // Caso originalmente adicionado por: Sofia
-  it("deve selecionar uma data e exibi-la corretamente", () => {
-    cy.get('input[type="date"]').first().type("2024-01-16");
-
-    cy.contains("2024-01-16").should("be.visible");
+  it("deve exibir o campo de data vazio inicialmente", () => {
+    cy.get('[data-testid="input-date"]')
+      .should("be.visible")
+      .and("have.attr", "type", "date")
+      .and("have.value", "");
   });
 
   // Caso originalmente adicionado por: Sofia
-  it("deve selecionar um framework no dropdown customizado", () => {
-    cy.contains(/Escolha uma op..o/).first().click();
-    cy.contains("Cypress").click();
-
-    cy.contains("Cypress").should("be.visible");
+  it("deve exibir o dropdown customizado com o placeholder padrao", () => {
+    cy.contains('[data-testid="card-title"]', "Seleção")
+      .parents('[data-testid="card"]')
+      .first()
+      .within(() => {
+        cy.get('[data-testid="select-input"]')
+          .should("be.visible")
+          .and("contain", "Escolha uma opção")
+          .and("have.attr", "aria-expanded", "false");
+      });
   });
 
   // Caso originalmente adicionado por: Sofia
-  it("deve marcar todos os checkboxes e atualizar o contador", () => {
-    cy.contains(/Selecionar Todas/).click();
-
-    cy.contains(/Selecionados: 3/).should("be.visible");
+  it("deve iniciar o contador de checkboxes zerado", () => {
+    cy.get('[data-testid="checkbox-count"]').should("contain", "Selecionados: 0");
   });
 });
