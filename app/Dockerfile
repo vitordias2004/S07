@@ -1,21 +1,17 @@
 FROM node:18-alpine
 
 LABEL maintainer="Grupo S07 - DevOps"
-LABEL description="Aplicação Node mock para testes"
+LABEL description="Coletor de resultados de testes Cypress"
 
 WORKDIR /app
 
-# Copiar package.json
 COPY package.json ./
-
-# Instalar dependências
 RUN npm install --production
 
-# Copiar código da aplicação
 COPY . .
 
-# Expor porta
+RUN mkdir -p /data
+
 EXPOSE 3000
 
-# Comando para iniciar a aplicação
 CMD ["node", "server.js"]
