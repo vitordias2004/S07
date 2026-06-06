@@ -1,30 +1,28 @@
 version: '3.8'
-
 services:
-
-  # Container 1: Jenkins — build local com Node.js + Docker CLI
   jenkins:
     build:
       context: .
       dockerfile: Dockerfile.jenkins
     container_name: jenkins-s07
+    user: "1000:1000"
+    group_add:
+      - "0"
     ports:
       - "8080:8080"
       - "50000:50000"
     volumes:
       - jenkins-home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./nginx/html/data:/shared/nginx-data
     environment:
       - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
     networks:
       - devops-network
     restart: unless-stopped
 
-  # Container 2: Cypress — build local (Dockerfile raiz)
   cypress:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: vitordias2004/s07-devops:latest
     container_name: cypress-s07
     depends_on:
       - nginx
@@ -37,8 +35,8 @@ services:
     volumes:
       - cypress-videos:/app/cypress/videos
       - cypress-screenshots:/app/cypress/screenshots
+    restart: unless-stopped
 
-  # Container 3: Nginx — imagem do Docker Hub
   nginx:
     image: nginx:alpine
     container_name: nginx-s07
@@ -55,7 +53,6 @@ services:
       retries: 3
     restart: unless-stopped
 
-  # Container 4: Node App — build local (app/Dockerfile)
   node-app:
     build:
       context: ./app
@@ -67,6 +64,8 @@ services:
       - NODE_ENV=production
     networks:
       - devops-network
+    volumes:
+      - test-results:/data  
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', r => process.exit(r.statusCode === 200 ? 0 : 1))"]
       interval: 30s
@@ -82,3 +81,4 @@ volumes:
   jenkins-home:
   cypress-videos:
   cypress-screenshots:
+  test-results:

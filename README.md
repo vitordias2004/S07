@@ -1,37 +1,44 @@
-# DevOps S07 — NP2
+# DevOps S07 - NP2
 
-Projeto da disciplina **S07 - Gerência de Configuração e Evolução de Software (INATEL)** demonstrando práticas DevOps modernas com Docker, Jenkins e CI/CD.
+Projeto da disciplina **S07 - Gerencia de Configuracao e Evolucao de Software (INATEL)** para demonstrar um fluxo DevOps com Docker, Jenkins, Cypress, Nginx e uma API mock em Node.js.
 
-## 🏗️ Arquitetura
+## Arquitetura
 
-O sistema é composto por **4 containers**:
+O ambiente principal usa 4 containers:
 
-| Container | Imagem | Origem | Função |
+| Container | Imagem | Origem | Funcao |
 |-----------|--------|--------|--------|
 | `jenkins-s07` | `Dockerfile.jenkins` | Build local | CI/CD Pipeline |
-| `cypress-s07` | `Dockerfile` | Build local | Testes E2E |
-| `nginx-s07` | `nginx:alpine` | Docker Hub | Servidor web |
+| `cypress-s07` | `vitordias2004/s07-devops:latest` | Docker Hub | Ambiente de execucao dos testes E2E |
+| `nginx-s07` | `nginx:alpine` | Docker Hub | Dashboard web com historico das notificacoes |
 | `node-app-s07` | `app/Dockerfile` | Build local | API mock |
 
-Os containers `cypress-s07` e `node-app-s07` se comunicam via rede `devops-network`. O Jenkins também acessa o Docker host via socket montado.
+### Como as partes se conectam
 
-## 🚀 Instalação e Execução
+- `docker-compose.yml` sobe Jenkins, Cypress, Nginx e Node app na rede `devops-network`.
+- O `Jenkins` usa o socket Docker do host para construir imagens e executar o pipeline.
+- O `Dockerfile` usa a imagem oficial `cypress/included:15.13.1` como base para evitar problemas de dependencias graficas no ambiente do Jenkins.
+- O `script-email.js` envia os e-mails da pipeline e grava um resumo de cada tentativa em `nginx/html/data/email-history.json`.
+- O `nginx` serve `nginx/html/index.html` e publica o historico em `http://localhost:80`.
+- Os testes automatizados ficam em `testes/cypress/e2e/` e sao executados pelo pipeline via Cypress headless.
 
-### Pré-requisitos
+## Instalacao e execucao
+
+### Pre-requisitos
 
 - Docker 20.10+
 - Docker Compose 2.0+
-- Node.js 18+ (para o script de e-mail local)
+- Node.js 18+ para uso local do `script-email.js`
 - Git
 
-### 1. Clonar o repositório
+### 1. Clonar o repositorio
 
 ```bash
 git clone https://github.com/vitordias2004/S07.git
 cd S07
 ```
 
-### 2. Instalar dependências do script de e-mail
+### 2. Instalar dependencias da raiz
 
 ```bash
 npm install
@@ -49,150 +56,184 @@ docker-compose up -d
 docker-compose ps
 ```
 
-### 5. Acessar os serviços
+### 5. Acessar os servicos
 
-| Serviço | URL |
+| Servico | URL |
 |---------|-----|
 | Jenkins | http://localhost:8080 |
-| Nginx | http://localhost:80 |
+| Nginx dashboard | http://localhost:80 |
 | Node App | http://localhost:3000 |
 
-## ⚙️ Configurando o Pipeline no Jenkins
+## Configurando o pipeline no Jenkins
 
-### Credenciais obrigatórias
+### Credenciais obrigatorias
 
-Acesse **Jenkins → Manage Jenkins → Credentials** e crie:
+Crie estas credentials em **Jenkins -> Manage Jenkins -> Credentials**:
 
-| ID da Credential | Tipo | Descrição |
-|-----------------|------|-----------|
-| `email-remetente` | Secret text | E-mail que vai enviar as notificações |
-| `email-destino` | Secret text | E-mail que vai receber as notificações |
-| `email-senha` | Secret text | Senha de app do Gmail (não a senha da conta) |
+| ID da credential | Tipo | Uso |
+|------------------|------|-----|
+| `email-remetente` | Secret text | E-mail que enviara a notificacao |
+| `email-destino` | Secret text | E-mail que recebera a notificacao |
+| `email-senha` | Secret text | Senha de app do Gmail |
+| `docker-hub-credentials` | Username with password | Usuario e token do Docker Hub |
 
-> Para criar uma senha de app no Gmail: Conta Google → Segurança → Verificação em duas etapas → Senhas de app
+Importante para Gmail:
 
-### Criar o pipeline
+- a conta usada em `email-remetente` precisa estar com verificacao em duas etapas ativada
+- o valor de `email-senha` nao deve ser a senha normal da conta
+- o valor correto e uma `App Password` de 16 caracteres gerada no Google Account
+- se isso nao estiver configurado, o Jenkins falha no envio com erro `534-5.7.9 Application-specific password required`
 
-1. Jenkins → **New Item** → Pipeline
+### Criar o job
+
+1. Jenkins -> **New Item** -> Pipeline
 2. Em *Pipeline definition*, selecione **Pipeline script from SCM**
-3. SCM: Git | URL: `https://github.com/vitordias2004/S07.git`
-4. Branch: `main`
-5. Script Path: `Jenkinsfile`
-6. Salvar e executar
+3. SCM: Git
+4. URL: `https://github.com/vitordias2004/S07.git`
+5. Branch: `main`
+6. Script Path: `Jenkinsfile`
+7. Salve e execute
 
-## 🔧 Estrutura do Projeto
+## Estrutura do projeto
 
-```
+```text
 S07/
-├── Dockerfile              # Imagem Cypress (testes E2E)
-├── Dockerfile.jenkins      # Jenkins com Node.js + Docker CLI
-├── Jenkinsfile             # Pipeline CI/CD (3 stages obrigatórios)
-├── docker-compose.yml      # Orquestração dos 4 containers
-├── script-email.js         # Notificação por e-mail pós-pipeline
-├── package.json            # Dependência: nodemailer
-├── app/
-│   ├── Dockerfile          # Imagem da API mock
-│   ├── package.json
-│   └── server.js           # Express: /health, /api/data
-├── nginx/
-│   └── html/
-│       └── index.html      # Página estática servida pelo Nginx
-└── testes/
-    └── cypress/
-        └── e2e/            # Testes automatizados Cypress
+|-- Dockerfile
+|-- Dockerfile.jenkins
+|-- Jenkinsfile
+|-- docker-compose.yml
+|-- script-email.js
+|-- package.json
+|-- app/
+|   |-- Dockerfile
+|   |-- package.json
+|   `-- server.js
+|-- nginx/
+|   `-- html/
+|       |-- index.html
+|       `-- data/
+|           `-- email-history.json
+`-- testes/
+    |-- package.json
+    |-- cypress.config.js
+    `-- cypress/
+        `-- e2e/
 ```
 
-## 🔄 Pipeline Jenkins
+## Pipeline Jenkins
 
-O `Jenkinsfile` contém **3 stages obrigatórios**:
+O `Jenkinsfile` executa este fluxo:
 
-1. **Testes** — Executa Cypress headless, gera relatório JUnit e publica no Jenkins
-2. **Build** — Empacota o projeto em `.tar.gz` e arquiva como artefato
-3. **Notificação** — Envia e-mail HTML com status, número do build e timestamp
+1. **Checkout**: baixa o codigo do repositario.
+2. **Install Email Dependencies**: instala o `nodemailer` na raiz para o script de notificacao.
+3. **Build Docker Image**: gera a imagem usada para executar os testes Cypress.
+4. **Testes**: executa os specs de `testes/cypress/e2e` em modo headless e publica o relatorio JUnit.
+5. **Build**: empacota o repositorio em `.tar.gz`, excluindo diretorios gerados.
+6. **Push to Docker Hub**: publica a imagem quando a branch e `main`.
 
-Artefatos gerados e arquivados:
+No bloco `post { always { ... } }`, o pipeline:
+
+- tenta enviar o e-mail com `script-email.js`
+- atualiza `nginx/html/data/email-history.json` mesmo quando o envio falha
+- arquiva o `.tar.gz`
+- arquiva o XML do Cypress
+- limpa o workspace
+
+Se o envio de e-mail falhar por credencial SMTP, o pipeline registra um aviso, grava a falha no painel do Nginx e segue com o resultado principal da build, sem mascarar o status real dos testes.
+
+### Artefatos arquivados
+
 - `build/app-build-<timestamp>.tar.gz`
 - `test-results/cypress-results.xml`
 
-## 📧 Script de E-mail
+## Painel Nginx de notificacoes
+
+O `nginx` agora tem uma funcao direta no projeto: exibir os e-mails enviados pela pipeline.
+
+### Como funciona
+
+- O `docker-compose` monta `./nginx/html/data` dentro do container do Jenkins em `/shared/nginx-data`.
+- O `Jenkinsfile` chama o `script-email.js` com `--history-file "/shared/nginx-data/email-history.json"`.
+- Depois de cada tentativa, o script grava um registro com:
+  - `buildNumber`
+  - `status` da build
+  - `deliveryStatus` do e-mail (`SENT` ou `FAILED`)
+  - `subject`
+  - `messageId`
+  - `buildUrl`
+  - horario do envio
+  - remetente e destinatario mascarados
+  - mensagem de erro, quando existir
+- O `index.html` do Nginx faz `fetch` do JSON e renderiza o historico no browser.
+
+### O que aparece na tela
+
+- status da build
+- status do envio do e-mail
+- numero da build
+- assunto do e-mail
+- horario do envio
+- link da build, quando disponivel
+- remetente e destinatario mascarados
+- erro de autenticacao ou transporte, quando houver
+
+## Script de e-mail
+
+Exemplo de uso manual:
 
 ```bash
-# Uso manual (para testes)
 node script-email.js \
   --from "remetente@gmail.com" \
   --to "destino@gmail.com" \
   --password "senha-de-app" \
   --status "SUCCESS" \
-  --build "42"
+  --build "42" \
+  --build-url "http://localhost:8080/job/S07/42/" \
+  --history-file "./nginx/html/data/email-history.json"
 ```
 
-O endereço de e-mail **nunca está hardcoded** — vem sempre de variáveis de ambiente ou credenciais do Jenkins.
+O endereco de e-mail nunca fica hardcoded. Ele sempre vem de argumentos ou de variaveis de ambiente. O historico publicado pelo Nginx guarda apenas e-mails mascarados.
 
-## 🐳 Docker Hub
+## Docker Hub
 
-- **Imagem publicada:** *(adicionar link após publicar)*
+- Imagem publicada: https://hub.docker.com/r/vitordias2004/s07-devops
 
 ```bash
-# Publicar manualmente
-docker build -t SEU_USER/s07-devops:latest .
-docker push SEU_USER/s07-devops:latest
+docker build -t vitordias2004/s07-devops:latest .
+docker push vitordias2004/s07-devops:latest
 ```
 
-## 🧪 Testes
+## Testes
 
-Os testes E2E com Cypress ficam em `testes/cypress/e2e/`.
+Os testes E2E ficam em `testes/cypress/e2e/`.
+
+### Rodar localmente
 
 ```bash
-# Rodar localmente
 cd testes
 npm install
-npx cypress run         # headless
-npx cypress open        # interface interativa
+npx cypress run
+npx cypress open
 ```
 
-Cobertura de testes: **≥ 90%**
+### Cobertura funcional
 
-## 🤖 Uso de IA
+- 7 specs Cypress versionadas
+- 20 casos automatizados
+- 10 fluxos funcionais mapeados
+- 100% de cobertura sobre os fluxos definidos
 
-### Modelos utilizados
-- **Claude (Anthropic)** — principal ferramenta usada pelo grupo
+## Uso de IA
 
-### Para quê foi usado
-- Geração inicial do `Dockerfile`, `Jenkinsfile` e `docker-compose.yml`
-- Debugging de erros de interpolação de variáveis no Jenkinsfile (aspas simples vs duplas no Groovy)
-- Correção do `script-email.js` para remover e-mail hardcoded
-- Criação do `Dockerfile.jenkins` com Node.js + Docker CLI
-- Estruturação deste README
+Modelos e assistentes foram usados como apoio para:
 
-### Exemplos de prompts usados
+- estrutura inicial de `Dockerfile`, `Jenkinsfile` e `docker-compose.yml`
+- debugging do pipeline Jenkins
+- ajuste do `script-email.js`
+- organizacao inicial da documentacao
 
-**Prompt 1** (geração do Jenkinsfile):
-> "Crie um Jenkinsfile com 3 stages: execução de testes Cypress, build empacotando em tar.gz e notificação por e-mail. O e-mail não pode ser hardcoded, deve vir de credentials do Jenkins."
-
-Resposta: aceita com ajustes — foi necessário corrigir manualmente as aspas simples que impediam a interpolação de `currentBuild.currentResult`.
-
-**Prompt 2** (bug de interpolação):
-> "No meu Jenkinsfile, a variável `${currentBuild.currentResult}` está vindo vazia dentro do sh. Por quê?"
-
-Resposta: aceita — a IA explicou que aspas simples (`'''`) no Groovy não interpolam variáveis e sugeriu usar aspas duplas (`"""`).
-
-**Prompt 3** (Dockerfile do Jenkins):
-> "Como faço para instalar Node.js 18 dentro de uma imagem jenkins/jenkins:lts via Dockerfile?"
-
-Resposta: aceita com pequeno ajuste — removemos `libgconf-2-4` que não existe mais no Debian atual.
-
-**Prompt 4** (docker-compose):
-> "Tenho 4 containers: Jenkins, Cypress, Nginx e Node app. Como configurar comunicação entre eles e volumes para persistência no docker-compose.yml?"
-
-Resposta: aceita parcialmente — ajustamos os paths dos volumes do Cypress que estavam incorretos.
-
-### O que foi feito à mão (sem IA)
-- Escrita dos testes Cypress em `testes/cypress/e2e/`
-- Configuração das credentials no Jenkins (feita via interface)
-- Decisões de arquitetura: separação app/testes, escolha de `nginx:alpine`, healthchecks
-- Commits e organização do repositório por cada membro
-- Testes e validação do pipeline rodando de ponta a ponta
+O grupo revisou e ajustou manualmente a integracao final, os testes Cypress, as credenciais e as decisoes de arquitetura.
 
 ---
 
-**INATEL — S07 Gerência de Configuração e Evolução de Software — 2025**
+**INATEL - S07 Gerencia de Configuracao e Evolucao de Software - 2025**
