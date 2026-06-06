@@ -57,7 +57,7 @@ pipeline {
                         docker run --rm \
                             -v \$PWD/${REPORT_DIR}:/app/${REPORT_DIR} \
                             ${DOCKER_IMAGE}:${DOCKER_TAG} \
-                            npx cypress run --spec "cypress/e2e/**/*.cy.js" --browser electron --reporter junit --reporter-options "mochaFile=/app/${REPORT_DIR}/cypress-results.xml"
+                            xvfb-run -a npx cypress run --spec "cypress/e2e/**/*.cy.js" --browser electron --reporter junit --reporter-options "mochaFile=/app/${REPORT_DIR}/cypress-results.xml"
                     """
                 }
             }
@@ -117,6 +117,7 @@ pipeline {
                         fi
                     '''
                     def buildStatus = currentBuild.currentResult ?: 'UNKNOWN'
+                    def buildUrl = env.BUILD_URL ?: ''
                     sh 'mkdir -p /shared/nginx-data'
                     sh """
                         node script-email.js \
@@ -125,7 +126,7 @@ pipeline {
                             --password "${EMAIL_SENHA}" \
                             --status "${buildStatus}" \
                             --build "${BUILD_NUMBER}" \
-                            --build-url "${BUILD_URL}" \
+                            --build-url "${buildUrl}" \
                             --history-file "${EMAIL_HISTORY_FILE}"
                     """
                 }

@@ -24,4 +24,4 @@ RUN npm ci
 
 COPY testes/ ./
 
-CMD ["npx", "cypress", "run", "--spec", "cypress/e2e/**/*.cy.js"]
+CMD ["xvfb-run", "-a", "npx", "cypress", "run", "--spec", "cypress/e2e/**/*.cy.js"]
