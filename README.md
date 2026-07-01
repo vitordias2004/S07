@@ -1,4 +1,4 @@
-# DevOps S07 - NP2
+# DevOps S07 - NP3
 
 Projeto da disciplina **S07 - Qualidade, Gerência de Config. e Evolução de Software** para demonstrar um fluxo DevOps com Docker, Jenkins, Cypress, Nginx e uma API mock em Node.js.
 
@@ -142,6 +142,7 @@ S07/
 |   `-- plano_de_testes_cypress.pdf
 |-- app/
 |   |-- Dockerfile
+|   |-- .nycrc
 |   |-- package.json
 |   `-- server.js
 |-- nginx/
@@ -185,6 +186,8 @@ Se o envio de e-mail falhar por credencial SMTP, o pipeline registra um aviso, g
 - `build/app-build-<timestamp>.tar.gz`
 - `test-results/cypress-results-*.xml`
 - `node-results/results.json`
+- `coverage/index.html`
+- `coverage/lcov.info`
 
 Observacao:
 
@@ -313,7 +316,28 @@ Observacao:
 
 - 7 specs Cypress versionadas
 - 20 casos automatizados
-- o mapeamento funcional detalhado esta em `docs/plano_de_testes_cypress.pdf`
+- cobertura de linhas do `server.js`: **90.47%** medida via nyc no pipeline
+- o mapeamento funcional detalhado está em `docs/plano_de_testes_cypress.pdf`
+
+## Cobertura de testes
+
+A cobertura é medida no `server.js` (Node App) usando **nyc (Istanbul)**.
+
+Durante o pipeline, o `node-app` sobe com `npm run start:coverage`, que
+instrumenta o código automaticamente. Ao final dos testes, o Jenkins executa
+`nyc report` antes de derrubar o container e arquiva o relatório como artefato.
+
+### Resultado atual
+
+| Métrica | Cobertura |
+|---------|-----------|
+| Statements | 84.44% |
+| Branches | 81.25% |
+| Functions | 72.72% |
+| **Lines** | **90.47% ✅** |
+
+O relatório completo, com detalhamento linha a linha, está disponível como
+artefato Jenkins em `coverage/index.html` após cada execução do pipeline.
 
 ## Uso de IA
 
@@ -321,7 +345,11 @@ A IA foi usada como apoio tecnico iterativo durante o projeto, mas o trabalho na
 
 ### Ferramentas e contexto
 
-- **Claude (Anthropic)** foi uma das principais ferramentas usadas pelo grupo ao longo do projeto
+- **Claude (Anthropic)** foi usado durante todo o projeto, incluindo a fase
+  final de implementação da cobertura de testes com nyc — análise de logs do
+  pipeline, correções no `server.js` (handler SIGTERM), `app/Dockerfile`,
+  `app/.nycrc`, `Jenkinsfile` e nos specs Cypress para aumentar a cobertura
+  para 90.47%
 - **Codex** foi usado especialmente na fase final para revisar o estado real do repositorio, interpretar logs do Jenkins, integrar o `node-app`, reaproveitar o `nginx` e alinhar a documentacao com o codigo
 - a IA foi usada como apoio de engenharia e documentacao, nao como substituta da implementacao e da validacao humana
 
@@ -350,6 +378,11 @@ Os exemplos abaixo foram levemente normalizados e tiveram dados sensiveis omitid
 - `Precisamos usar esse nginx para alguma coisa. Quero que ele mostre os e-mails enviados pela pipeline, faca a mudanca e corrija a documentacao`
 - `Integre o node-app ao pipeline`
 - `O README.md do projeto esta correto? Ele documenta corretamente? Ele pode estar defasado em algum aspecto, investigue`
+- `Olhando o arquivo descritivo do projeto, analise esse repositório e confirme se tudo está em conformidade com o que foi pedido`
+- `O que seria cobertura de testes? Como eu poderia evidenciar isso?`
+- `Ensine passo a passo o que fazer no código para evidenciar essa cobertura`
+- `O relatório está mostrando 0%. O que está errado?`
+- `O relatório está em 75%. Como aumentar para 90%?`
 
 ### Como as respostas foram aproveitadas
 
