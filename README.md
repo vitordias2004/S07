@@ -1,6 +1,6 @@
 # DevOps S07 - NP2
 
-Projeto da disciplina **S07 - Gerencia de Configuracao e Evolucao de Software (INATEL)** para demonstrar um fluxo DevOps com Docker, Jenkins, Cypress, Nginx e uma API mock em Node.js.
+Projeto da disciplina **S07 - Qualidade, Gerência de Config. e Evolução de Software** para demonstrar um fluxo DevOps com Docker, Jenkins, Cypress, Nginx e uma API mock em Node.js.
 
 ## Arquitetura
 
@@ -385,4 +385,4 @@ Os exemplos abaixo foram levemente normalizados e tiveram dados sensiveis omitid
 
 ---
 
-**INATEL - S07 Gerencia de Configuracao e Evolucao de Software**
+**INATEL - S07 - Qualidade, Gerência de Config. e Evolução de Software**

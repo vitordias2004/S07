@@ -89,7 +89,7 @@ function generateEmailContent(status, buildNumber) {
                     <div class="details">
                         <p><strong>Build #:</strong> ${buildNumber}</p>
                         <p><strong>Data:</strong> ${timestamp}</p>
-                        <p><strong>Projeto:</strong> S07 - DevOps NP2</p>
+                        <p><strong>Projeto:</strong> S07 - DevOps NP3</p>
                         <p><strong>Repositorio:</strong> <a href="https://github.com/vitordias2004/S07">github.com/vitordias2004/S07</a></p>
                     </div>
                 </div>
