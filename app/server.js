@@ -77,3 +77,9 @@ app.listen(PORT, () => {
   console.log(`Node App rodando na porta ${PORT}`);
   console.log(`Resultados persistidos em: ${RESULTS_FILE}`);
 });
+
+// Graceful shutdown para o nyc "ter tempo" de salvar os dados de cobertura
+process.on('SIGTERM', () => {
+  console.log('Recebido SIGTERM, encerrando servidor...');
+  process.exit(0);
+});
