@@ -66,6 +66,15 @@ pipeline {
                         cleanup() {
                             docker cp "\$cypress_container:/e2e/${REPORT_DIR}/." "${REPORT_DIR}/" >/dev/null 2>&1 || true
                             docker cp "\$node_container:/data/." "${NODE_RESULTS_DIR}/" >/dev/null 2>&1 || true
+
+                            docker stop "\$node_container" >/dev/null 2>&1 || true
+                            
+                            echo "=== RELATÓRIO DE COBERTURA DE TESTES ==="
+                            docker exec "\$node_container" sh -c "cd /app && ./node_modules/.bin/nyc report --reporter=text --reporter=html" || true
+                            echo "========================================="
+                            
+                            docker cp "\$node_container:/coverage/." "coverage/" >/dev/null 2>&1 || true
+                            
                             docker rm -f "\$cypress_container" >/dev/null 2>&1 || true
                             docker rm -f "\$node_container" >/dev/null 2>&1 || true
                             docker network rm "\$test_network" >/dev/null 2>&1 || true
@@ -189,6 +198,7 @@ pipeline {
             archiveArtifacts artifacts: '**/build/*.tar.gz',            allowEmptyArchive: true
             archiveArtifacts artifacts: "${REPORT_DIR}/**/*.xml",       allowEmptyArchive: true
             archiveArtifacts artifacts: "${NODE_RESULTS_DIR}/**/*.json", allowEmptyArchive: true
+            archiveArtifacts artifacts: 'coverage/**',  allowEmptyArchive: true
             cleanWs()
         }
         success {

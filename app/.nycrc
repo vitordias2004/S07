@@ -1,0 +1,7 @@
+{
+  "include": ["server.js"],
+  "reporter": ["text", "lcov", "html"],
+  "report-dir": "/coverage",
+  "temp-dir": "/coverage/.nyc_output",
+  "all": true
+}
