@@ -30,3 +30,5 @@ npm-debug.log*
 # OS
 .DS_Store
 Thumbs.db
+
+nginx/html/data/
