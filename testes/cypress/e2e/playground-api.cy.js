@@ -13,8 +13,8 @@ describe("Playground - api", () => {
     cy.get('[data-testid="api-error"]').should("be.visible");
   });
 
-  it('deve cobrir rotas auxiliares do node-app', () => {
-  const baseUrl = Cypress.env('NODE_APP_URL') || 'http://localhost:3000';
+it('deve cobrir rotas auxiliares do node-app', () => {
+  const baseUrl = 'http://node-app:3000'; // Usa o alias da rede Docker
 
   // Cobre GET /
   cy.request(`${baseUrl}/`).then(res => {
