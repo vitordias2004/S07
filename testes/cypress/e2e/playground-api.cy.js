@@ -12,4 +12,31 @@ describe("Playground - api", () => {
 
     cy.get('[data-testid="api-error"]').should("be.visible");
   });
+
+  it('deve cobrir rotas auxiliares do node-app', () => {
+  const baseUrl = Cypress.env('NODE_APP_URL') || 'http://localhost:3000';
+
+  // Cobre GET /
+  cy.request(`${baseUrl}/`).then(res => {
+    expect(res.status).to.eq(200);
+  });
+
+  // Cobre POST com body inválido (sem title)
+  cy.request({
+    method: 'POST',
+    url: `${baseUrl}/api/results`,
+    body: { status: 'passed' },
+    failOnStatusCode: false
+  }).then(res => {
+    expect(res.status).to.eq(400);
+  });
+
+  // Cobre DELETE /api/results
+  cy.request({
+    method: 'DELETE',
+    url: `${baseUrl}/api/results`
+  }).then(res => {
+    expect(res.status).to.eq(200);
+  });
+});
 });
