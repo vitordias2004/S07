@@ -6,12 +6,12 @@ LABEL description="Coletor de resultados de testes Cypress"
 WORKDIR /app
 
 COPY package.json ./
-RUN npm install --production
+RUN npm install --production && npm install --save-dev nyc
 
 COPY . .
 
-RUN mkdir -p /data
+RUN mkdir -p /data /coverage
 
 EXPOSE 3000
 
-CMD ["node", "server.js"]
+CMD ["npm", "run", "start:coverage"]
